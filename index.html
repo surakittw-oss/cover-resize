@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cover Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #fafafa;
+    --surface-2: #f5f5f7;
+    --ink: #e62227;
+    --ink-hover: #c41d22;
+    --text: #1d1d1f;
+    --text-2: #424245;
+    --text-3: #6e6e73;
+    --text-4: #86868b;
+    --line: #d2d2d7;
+    --line-soft: #e8e8ed;
+    --hot: #ff3b30;
+    --good: #34c759;
+    --blue: #0071e3;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 18px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner {
+    max-width: 1280px; margin: 0 auto;
+    padding: 14px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+  .nav-meta { font-size: 12px; color: var(--text-3); font-weight: 300; }
+
+  /* HERO */
+  .hero {
+    max-width: 1280px; margin: 0 auto;
+    padding: 80px 32px 60px; text-align: center;
+  }
+  .hero h1 {
+    font-size: 56px; font-weight: 600;
+    letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 18px;
+  }
+  .hero h1 .light {
+    font-weight: 200; color: var(--text-3);
+    display: block; font-size: 32px; margin-top: 8px; letter-spacing: -0.01em;
+  }
+  .hero-sub {
+    font-size: 17px; font-weight: 300; color: var(--text-3);
+    max-width: 560px; margin: 0 auto 48px; line-height: 1.5;
+  }
+
+  /* DROPZONE */
+  .dropzone {
+    max-width: 720px; margin: 0 auto;
+    background: var(--surface);
+    border: 1.5px dashed var(--line);
+    border-radius: var(--radius-lg);
+    padding: 80px 40px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--ink); background: var(--surface-2);
+    transform: translateY(-2px);
+  }
+  .dropzone-icon {
+    width: 64px; height: 64px; margin: 0 auto 24px;
+    border-radius: 50%; background: var(--ink); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 200;
+    transition: transform 0.3s;
+  }
+  .dropzone:hover .dropzone-icon { transform: scale(1.08); }
+  .dropzone-title { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .dropzone-sub { font-size: 14px; color: var(--text-3); font-weight: 300; }
+  .dropzone input[type=file] { display: none; }
+
+  /* WORKSPACE */
+  .workspace {
+    max-width: 1280px; margin: 0 auto;
+    padding: 40px 32px 80px;
+    display: grid; grid-template-columns: 1fr 340px;
+    gap: 32px; align-items: start;
+  }
+  @media (max-width: 960px) {
+    .workspace { grid-template-columns: 1fr; padding: 24px 20px 60px; }
+    .hero { padding: 40px 20px; }
+    .hero h1 { font-size: 38px; }
+    .hero h1 .light { font-size: 22px; }
+  }
+
+  /* PREVIEW */
+  .preview-card {
+    background: var(--bg);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .preview-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .preview-title { font-size: 13px; font-weight: 500; }
+  .preview-info { font-size: 12px; color: var(--text-3); font-weight: 300; }
+  .preview-canvas-wrap {
+    padding: 32px;
+    background:
+      linear-gradient(45deg, var(--surface-2) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--surface-2) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--surface-2) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--surface-2) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    background-color: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 320px;
+  }
+  .preview-canvas-wrap canvas {
+    max-width: 100%; max-height: 480px;
+    display: block; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px -6px rgba(0,0,0,0.15);
+  }
+
+  /* CROP EDITOR */
+  .crop-editor {
+    padding: 24px;
+    background: var(--surface);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .crop-stage {
+    position: relative;
+    display: inline-block;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 0 4px 16px -4px rgba(0,0,0,0.15);
+  }
+  .crop-stage img {
+    display: block;
+    max-width: 100%;
+    max-height: 480px;
+    pointer-events: none;
+  }
+  .crop-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+  /* darkening mask using box-shadow on inner crop frame */
+  .crop-frame {
+    position: absolute;
+    border: 2px solid white;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    cursor: move;
+    pointer-events: auto;
+  }
+  .crop-frame::before, .crop-frame::after {
+    content: ''; position: absolute;
+    background: rgba(255,255,255,0.5);
+  }
+  /* rule of thirds vertical */
+  .crop-frame::before {
+    top: 0; bottom: 0; left: 33.33%; width: 1px;
+    box-shadow: 33.33% 0 0 rgba(255,255,255,0.5);
+  }
+  .crop-frame::after {
+    left: 0; right: 0; top: 33.33%; height: 1px;
+    box-shadow: 0 33.33% 0 rgba(255,255,255,0.5);
+  }
+  /* corner handles */
+  .handle {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: white;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    pointer-events: auto;
+  }
+  .handle.tl { top: -7px; left: -7px; cursor: nwse-resize; }
+  .handle.tr { top: -7px; right: -7px; cursor: nesw-resize; }
+  .handle.bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+  .handle.br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+  /* focal point dot */
+  .focal-dot {
+    position: absolute;
+    width: 22px; height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 2px solid white;
+    background: var(--blue);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--ink), 0 4px 12px rgba(0,0,0,0.4);
+    pointer-events: none;
+    transition: transform 0.15s;
+  }
+  .focal-dot::after {
+    content: '';
+    position: absolute; inset: -8px;
+    border-radius: 50%;
+    border: 1px dashed white;
+    opacity: 0.6;
+  }
+
+  .crop-hint {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 300;
+    text-align: center;
+  }
+
+  /* STATS */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-top: 16px;
+  }
+  @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--surface); border-radius: var(--radius); padding: 18px 20px; }
+  .stat-label { font-size: 11px; color: var(--text-3); font-weight: 400; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; }
+  .stat-value.good { color: var(--good); }
+  .stat-value.bad { color: var(--hot); }
+  .stat-sub { font-size: 11px; color: var(--text-4); margin-top: 4px; font-weight: 300; }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    position: sticky; top: 80px;
+  }
+  .control-section {
+    padding-bottom: 20px; margin-bottom: 20px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .control-section:last-of-type { border-bottom: none; margin-bottom: 24px; }
+  .control-label {
+    font-size: 12px; font-weight: 500; color: var(--text-2);
+    margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .control-label .val { font-weight: 400; color: var(--text-3); }
+
+  .seg {
+    display: grid; background: var(--surface-2);
+    border-radius: var(--radius-sm); padding: 2px; gap: 2px;
+  }
+  .seg-2 { grid-template-columns: 1fr 1fr; }
+  .seg-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .seg button {
+    appearance: none; border: none; background: transparent;
+    font-family: inherit; font-size: 12px; font-weight: 400; color: var(--text-2);
+    padding: 8px 6px; cursor: pointer; border-radius: 6px;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .seg button:hover:not(.active) { color: var(--text); }
+  .seg button.active {
+    background: var(--bg); color: var(--text); font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  /* preset grid for output sizes */
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .preset {
+    appearance: none;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .preset:hover { border-color: var(--text-3); }
+  .preset.active {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+  .preset.active .preset-name,
+  .preset.active .preset-dim {
+    color: white;
+  }
+  .preset-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .preset-dim {
+    font-size: 10px;
+    color: var(--text-3);
+    font-weight: 300;
+    line-height: 1.2;
+  }
+
+  .custom-size-row {
+    padding-top: 10px;
+    border-top: 1px dashed var(--line-soft);
+  }
+  .custom-size-label {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+  .swap-btn {
+    appearance: none;
+    width: 32px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-2);
+    transition: all 0.15s;
+    flex-shrink: 0;
+    font-family: inherit;
+  }
+  .swap-btn:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+    transform: rotate(180deg);
+  }
+
+  .num-row { display: flex; gap: 8px; margin-top: 8px; }
+  .num-input {
+    flex: 1; border: 1px solid var(--line); background: var(--bg);
+    border-radius: 6px; padding: 8px 10px;
+    font-family: inherit; font-size: 12px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .num-input:focus { border-color: var(--ink); }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px;
+    background: var(--line); border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px;
+    background: var(--bg);
+    border: 0.5px solid var(--line);
+    border-radius: 50%; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.08); }
+  input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px; background: var(--bg);
+    border: 0.5px solid var(--line); border-radius: 50%; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .swatch {
+    aspect-ratio: 1; border: 1px solid var(--line);
+    border-radius: 50%; cursor: pointer; transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.selected {
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
+  }
+  .swatch.auto {
+    background: conic-gradient(from 0deg, #fff, #1d1d1f, #6e6e73, #fff);
+    color: white; font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .btn-primary {
+    width: 100%; appearance: none; border: none;
+    background: var(--ink); color: white;
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    padding: 14px 20px; cursor: pointer; border-radius: 980px;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--ink-hover); transform: translateY(-1px);
+    box-shadow: 0 8px 20px -8px rgba(230, 34, 39, 0.4);
+  }
+  .btn-primary:active:not(:disabled) { transform: translateY(0); }
+  .btn-primary:disabled {
+    background: var(--line); color: var(--text-4); cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    width: 100%; appearance: none;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--line);
+    font-family: inherit; font-size: 13px; font-weight: 400;
+    padding: 10px 16px; cursor: pointer; border-radius: 980px;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+  .btn-secondary:hover { border-color: var(--text); }
+
+  .reset-link {
+    display: block; text-align: center; margin-top: 12px;
+    font-size: 12px; color: var(--text-3);
+    background: none; border: none; cursor: pointer;
+    font-family: inherit; width: 100%; padding: 6px;
+    transition: color 0.15s;
+  }
+  .reset-link:hover { color: var(--text); }
+
+  .hint {
+    font-size: 11px; color: var(--text-3);
+    margin-top: 8px; font-weight: 300; line-height: 1.5;
+  }
+  .hint.warn { color: var(--hot); }
+
+  .hidden { display: none !important; }
+
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    background: var(--text); color: white;
+    padding: 12px 20px; border-radius: 980px;
+    font-size: 13px; z-index: 100;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 12px 32px -8px rgba(0,0,0,0.3);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  footer {
+    max-width: 1280px; margin: 0 auto;
+    padding: 24px 32px; text-align: center;
+    font-size: 12px; color: var(--text-4);
+    font-weight: 300; border-top: 1px solid var(--line-soft);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="logo">Cover Tool</div>
+    <div class="nav-meta">ประมวลผลในเบราว์เซอร์ · ไม่อัปโหลด</div>
+  </div>
+</nav>
+
+<section class="hero" id="hero">
+  <h1>
+    ย่อรูปปกเว็บ<br>
+    <span class="light">ไม่ครอป ไม่เพี้ยน</span>
+  </h1>
+  <p class="hero-sub">
+    ปรับขนาดและลดขนาดไฟล์ภาพปกเว็บอัตโนมัติ
+  </p>
+
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="file-input" accept="image/*">
+    <div class="dropzone-icon">+</div>
+    <div class="dropzone-title">วางรูปที่นี่ หรือคลิกเพื่อเลือก</div>
+    <div class="dropzone-sub">JPG · PNG · WEBP</div>
+  </div>
+</section>
+
+<div class="workspace hidden" id="workspace">
+  <main>
+    <!-- Preview card (no-crop modes) -->
+    <div class="preview-card" id="preview-card">
+      <div class="preview-head">
+        <div class="preview-title" id="preview-title">ตัวอย่าง</div>
+        <div class="preview-info" id="preview-info">—</div>
+      </div>
+
+      <!-- regular preview (letterbox/blur/auto crop result) -->
+      <div class="preview-canvas-wrap" id="preview-wrap">
+        <canvas id="preview-canvas"></canvas>
+      </div>
+
+      <!-- crop editor (focal/manual modes) -->
+      <div class="crop-editor hidden" id="crop-editor">
+        <div class="crop-stage" id="crop-stage">
+          <img id="crop-img" alt="">
+          <div class="crop-overlay" id="crop-overlay"></div>
+        </div>
+        <div class="crop-hint" id="crop-hint">คลิกบนภาพเพื่อกำหนดจุดโฟกัส</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">ต้นฉบับ</div>
+        <div class="stat-value" id="stat-orig-size">—</div>
+        <div class="stat-sub" id="stat-orig-dim">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">ผลลัพธ์</div>
+        <div class="stat-value" id="stat-out-size">—</div>
+        <div class="stat-sub" id="stat-out-dim">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">ลดลง</div>
+        <div class="stat-value" id="stat-reduction">—</div>
+        <div class="stat-sub">เทียบต้นฉบับ</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">คุณภาพ</div>
+        <div class="stat-value" id="stat-quality">—</div>
+        <div class="stat-sub" id="stat-quality-mode">—</div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="controls">
+    <div class="control-section">
+      <div class="control-label">
+        ขนาดผลลัพธ์
+        <span class="val" id="aspect-display">1.91 : 1</span>
+      </div>
+
+      <div class="preset-grid" id="preset-grid">
+        <button class="preset active" data-w="1200" data-h="628">
+          <span class="preset-name">Web Cover</span>
+          <span class="preset-dim">1200 × 628</span>
+        </button>
+        <button class="preset" data-w="1200" data-h="630">
+          <span class="preset-name">Facebook</span>
+          <span class="preset-dim">1200 × 630</span>
+        </button>
+        <button class="preset" data-w="1600" data-h="900">
+          <span class="preset-name">Twitter / 16:9</span>
+          <span class="preset-dim">1600 × 900</span>
+        </button>
+        <button class="preset" data-w="1080" data-h="1080">
+          <span class="preset-name">IG Square</span>
+          <span class="preset-dim">1080 × 1080</span>
+        </button>
+        <button class="preset" data-w="1080" data-h="1350">
+          <span class="preset-name">IG Portrait</span>
+          <span class="preset-dim">1080 × 1350</span>
+        </button>
+        <button class="preset" data-w="1080" data-h="1920">
+          <span class="preset-name">IG Story</span>
+          <span class="preset-dim">1080 × 1920</span>
+        </button>
+      </div>
+
+      <div class="custom-size-row">
+        <div class="custom-size-label">หรือกำหนดเอง</div>
+        <div class="num-row">
+          <input type="number" class="num-input" id="custom-w" value="1200" placeholder="กว้าง" min="1">
+          <button class="swap-btn" id="swap-btn" title="สลับกว้าง/สูง">⇄</button>
+          <input type="number" class="num-input" id="custom-h" value="628" placeholder="สูง" min="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-label">โหมดเติมพื้นที่</div>
+      <div class="seg seg-3" id="fit-seg">
+        <button class="active" data-fit="letterbox">พื้นสี</button>
+        <button data-fit="blur">เบลอ</button>
+        <button data-fit="crop">ครอป</button>
+      </div>
+      <div class="hint" id="fit-hint">รูปต้นฉบับจะแสดงครบ ไม่มีการครอป</div>
+    </div>
+
+    <!-- Letterbox bg color -->
+    <div class="control-section" id="bg-section">
+      <div class="control-label">สีพื้นหลัง</div>
+      <div class="swatches" id="swatches">
+        <div class="swatch selected" data-color="#ffffff" style="background:#ffffff"></div>
+        <div class="swatch" data-color="#000000" style="background:#000000"></div>
+        <div class="swatch" data-color="#f5f5f7" style="background:#f5f5f7"></div>
+        <div class="swatch" data-color="#1d1d1f" style="background:#1d1d1f"></div>
+        <div class="swatch" data-color="#86868b" style="background:#86868b"></div>
+        <div class="swatch auto" data-color="auto" title="สีเฉลี่ยจากภาพ">A</div>
+      </div>
+      <div class="hint">A = ใช้สีเฉลี่ยจากภาพ</div>
+    </div>
+
+    <!-- Blur strength -->
+    <div class="control-section hidden" id="blur-section">
+      <div class="control-label">
+        ระดับเบลอ
+        <span class="val" id="blur-num">40</span>
+      </div>
+      <input type="range" id="blur-range" min="10" max="80" value="40">
+    </div>
+
+    <!-- Crop sub-mode -->
+    <div class="control-section hidden" id="crop-section">
+      <div class="control-label">โหมดครอป</div>
+      <div class="seg seg-3" id="crop-mode-seg">
+        <button class="active" data-cmode="smart">อัตโนมัติ</button>
+        <button data-cmode="focal">จุดโฟกัส</button>
+        <button data-cmode="manual">ลากปรับ</button>
+      </div>
+      <div class="hint" id="crop-mode-hint">ระบบหาจุดสนใจในภาพและครอปให้</div>
+
+      <div id="crop-warn" class="hint warn hidden" style="margin-top:10px;">
+        ⚠ aspect ratio ต่างกันมาก จะตัดของออกพอสมควร
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-label">โหมดบีบอัด</div>
+      <div class="seg seg-2" id="compress-seg">
+        <button class="active" data-mode="auto">อัตโนมัติ</button>
+        <button data-mode="manual">กำหนดเอง</button>
+      </div>
+    </div>
+
+    <div class="control-section" id="auto-section">
+      <div class="control-label">
+        ขนาดเป้าหมาย
+        <span class="val" id="target-num">300 KB</span>
+      </div>
+      <input type="range" id="target-range" min="50" max="1000" value="300" step="10">
+      <div class="hint">ปรับคุณภาพอัตโนมัติให้ใกล้เคียงเป้าหมาย</div>
+    </div>
+
+    <div class="control-section hidden" id="manual-section">
+      <div class="control-label">
+        คุณภาพ JPG
+        <span class="val" id="quality-num">85</span>
+      </div>
+      <input type="range" id="quality-range" min="20" max="100" value="85">
+    </div>
+
+    <button class="btn-primary" id="download-btn" disabled>ดาวน์โหลด JPG</button>
+    <button class="reset-link" id="reset-btn">เลือกรูปใหม่</button>
+  </aside>
+</div>
+
+<footer>Cover Tool · ประมวลผลภาพในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์</footer>
+
+<div class="toast" id="toast">Processing</div>
+
+<script>
+// ============ STATE ============
+const state = {
+  img: null, origFile: null, origSize: 0,
+  outSize: [1200, 628],
+
+  fitMode: 'letterbox',     // 'letterbox' | 'blur' | 'crop'
+  cropMode: 'smart',        // 'smart' | 'focal' | 'manual'
+
+  bgColor: '#ffffff',
+  blurStrength: 40,
+
+  // crop state in IMAGE pixel coordinates
+  cropRect: null,           // {x, y, w, h} in original image px
+  focalPoint: null,         // {x, y} in original image px (0..iw, 0..ih)
+
+  compressMode: 'auto',
+  targetKB: 300,
+  manualQuality: 85,
+
+  finalBlob: null, finalQuality: null,
+
+  // crop editor display state
+  displayScale: 1,          // image px to display px
+};
+
+// ============ DOM ============
+const $ = id => document.getElementById(id);
+const el = {
+  hero: $('hero'), workspace: $('workspace'),
+  dropzone: $('dropzone'), fileInput: $('file-input'),
+  previewWrap: $('preview-wrap'),
+  previewCanvas: $('preview-canvas'),
+  previewInfo: $('preview-info'),
+  previewTitle: $('preview-title'),
+
+  cropEditor: $('crop-editor'),
+  cropStage: $('crop-stage'),
+  cropImg: $('crop-img'),
+  cropOverlay: $('crop-overlay'),
+  cropHint: $('crop-hint'),
+
+  sizeSeg: document.querySelectorAll('#size-seg button'),
+  customSize: $('custom-size'),
+  customW: $('custom-w'), customH: $('custom-h'),
+  presetGrid: $('preset-grid'),
+  swapBtn: $('swap-btn'),
+  aspectDisplay: $('aspect-display'),
+
+  fitSeg: document.querySelectorAll('#fit-seg button'),
+  fitHint: $('fit-hint'),
+
+  bgSection: $('bg-section'),
+  blurSection: $('blur-section'),
+  cropSection: $('crop-section'),
+
+  cropModeSeg: document.querySelectorAll('#crop-mode-seg button'),
+  cropModeHint: $('crop-mode-hint'),
+  cropWarn: $('crop-warn'),
+
+  swatches: $('swatches'),
+  blurRange: $('blur-range'), blurNum: $('blur-num'),
+
+  compressSeg: document.querySelectorAll('#compress-seg button'),
+  autoSection: $('auto-section'), manualSection: $('manual-section'),
+  targetRange: $('target-range'), targetNum: $('target-num'),
+  qualityRange: $('quality-range'), qualityNum: $('quality-num'),
+
+  downloadBtn: $('download-btn'), resetBtn: $('reset-btn'),
+  toast: $('toast'),
+
+  statOrigSize: $('stat-orig-size'), statOrigDim: $('stat-orig-dim'),
+  statOutSize: $('stat-out-size'), statOutDim: $('stat-out-dim'),
+  statReduction: $('stat-reduction'),
+  statQuality: $('stat-quality'), statQualityMode: $('stat-quality-mode'),
+};
+
+// ============ UTILS ============
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(2) + ' MB';
+}
+function showToast(msg) {
+  el.toast.textContent = msg;
+  el.toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.toast.classList.remove('show'), 2200);
+}
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// ============ FILE HANDLING ============
+el.dropzone.addEventListener('click', () => el.fileInput.click());
+el.fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+['dragover','dragenter'].forEach(evt => {
+  el.dropzone.addEventListener(evt, e => { e.preventDefault(); el.dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  el.dropzone.addEventListener(evt, e => { e.preventDefault(); el.dropzone.classList.remove('drag'); });
+});
+el.dropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) handleFile(f);
+});
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) { showToast('ไฟล์ไม่ใช่รูปภาพ'); return; }
+  state.origFile = file;
+  state.origSize = file.size;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      state.img = img;
+      el.cropImg.src = e.target.result;
+      el.hero.classList.add('hidden');
+      el.workspace.classList.remove('hidden');
+      el.workspace.classList.add('fade-in');
+      el.statOrigSize.textContent = fmtBytes(state.origSize);
+      el.statOrigDim.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+      // reset crop state for new image
+      state.focalPoint = null;
+      state.cropRect = null;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+el.resetBtn.addEventListener('click', () => {
+  state.img = null; state.origFile = null; state.finalBlob = null;
+  state.focalPoint = null; state.cropRect = null;
+  el.fileInput.value = '';
+  el.workspace.classList.add('hidden');
+  el.hero.classList.remove('hidden');
+  el.downloadBtn.disabled = true;
+});
+
+// ============ CONTROL HANDLERS ============
+// helper: pretty aspect ratio (e.g. "16 : 9", "1.91 : 1")
+function prettyAspect(w, h) {
+  if (!w || !h) return '—';
+  // try common ratios
+  const r = w / h;
+  const commons = [
+    [16, 9], [9, 16], [4, 3], [3, 4], [1, 1], [3, 2], [2, 3], [21, 9], [4, 5], [5, 4]
+  ];
+  for (const [a, b] of commons) {
+    if (Math.abs(r - a / b) < 0.01) return `${a} : ${b}`;
+  }
+  // simplify with gcd if both small
+  const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+  const g = gcd(w, h);
+  if (w / g <= 30 && h / g <= 30) return `${w/g} : ${h/g}`;
+  return r.toFixed(2) + ' : 1';
+}
+
+function updateAspectDisplay() {
+  const [w, h] = state.outSize;
+  el.aspectDisplay.textContent = prettyAspect(w, h);
+}
+
+function syncPresetActive() {
+  const [w, h] = state.outSize;
+  let matched = false;
+  el.presetGrid.querySelectorAll('.preset').forEach(btn => {
+    const pw = parseInt(btn.dataset.w);
+    const ph = parseInt(btn.dataset.h);
+    if (pw === w && ph === h) {
+      btn.classList.add('active');
+      matched = true;
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  return matched;
+}
+
+function applyOutSize(w, h, fromCustomInput = false) {
+  state.outSize = [w, h];
+  state.cropRect = null;
+  if (!fromCustomInput) {
+    el.customW.value = w;
+    el.customH.value = h;
+  }
+  syncPresetActive();
+  updateAspectDisplay();
+  if (state.img) render();
+}
+
+// preset buttons
+el.presetGrid.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const w = parseInt(btn.dataset.w);
+    const h = parseInt(btn.dataset.h);
+    applyOutSize(w, h, false);
+  });
+});
+
+// custom inputs
+[el.customW, el.customH].forEach(inp => {
+  inp.addEventListener('input', () => {
+    const w = parseInt(el.customW.value) || 0;
+    const h = parseInt(el.customH.value) || 0;
+    if (w > 0 && h > 0) applyOutSize(w, h, true);
+  });
+});
+
+// swap button
+el.swapBtn.addEventListener('click', () => {
+  const w = parseInt(el.customW.value) || state.outSize[0];
+  const h = parseInt(el.customH.value) || state.outSize[1];
+  applyOutSize(h, w, false);
+});
+
+// initialize aspect display
+updateAspectDisplay();
+
+el.fitSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    el.fitSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.fitMode = btn.dataset.fit;
+
+    el.bgSection.classList.add('hidden');
+    el.blurSection.classList.add('hidden');
+    el.cropSection.classList.add('hidden');
+
+    if (state.fitMode === 'letterbox') {
+      el.bgSection.classList.remove('hidden');
+      el.fitHint.textContent = 'รูปต้นฉบับจะแสดงครบ ไม่มีการครอป';
+      el.fitHint.classList.remove('warn');
+    } else if (state.fitMode === 'blur') {
+      el.blurSection.classList.remove('hidden');
+      el.fitHint.textContent = 'รูปต้นฉบับจะแสดงครบ พื้นที่เหลือเติมด้วยภาพเบลอ';
+      el.fitHint.classList.remove('warn');
+    } else {
+      el.cropSection.classList.remove('hidden');
+      el.fitHint.textContent = 'มีการตัดขอบบางส่วนเพื่อให้เต็มกรอบ';
+      el.fitHint.classList.add('warn');
+    }
+    if (state.img) render();
+  });
+});
+
+el.cropModeSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    el.cropModeSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.cropMode = btn.dataset.cmode;
+    state.cropRect = null;
+
+    if (state.cropMode === 'smart') {
+      el.cropModeHint.textContent = 'ระบบหาจุดสนใจในภาพและครอปให้อัตโนมัติ';
+    } else if (state.cropMode === 'focal') {
+      el.cropModeHint.textContent = 'คลิกบนภาพเพื่อปักจุดสำคัญที่ต้องไม่ตัด';
+    } else {
+      el.cropModeHint.textContent = 'ลากกรอบเพื่อเลือกพื้นที่ที่ต้องการ';
+    }
+    if (state.img) render();
+  });
+});
+
+el.swatches.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    el.swatches.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    sw.classList.add('selected');
+    state.bgColor = sw.dataset.color;
+    if (state.img) render();
+  });
+});
+
+el.blurRange.addEventListener('input', e => {
+  state.blurStrength = parseInt(e.target.value);
+  el.blurNum.textContent = state.blurStrength;
+});
+el.blurRange.addEventListener('change', () => { if (state.img) render(); });
+
+el.compressSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    el.compressSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.compressMode = btn.dataset.mode;
+    if (state.compressMode === 'auto') {
+      el.autoSection.classList.remove('hidden');
+      el.manualSection.classList.add('hidden');
+    } else {
+      el.autoSection.classList.add('hidden');
+      el.manualSection.classList.remove('hidden');
+    }
+    if (state.img) render();
+  });
+});
+
+el.targetRange.addEventListener('input', e => {
+  state.targetKB = parseInt(e.target.value);
+  el.targetNum.textContent = state.targetKB + ' KB';
+});
+el.targetRange.addEventListener('change', () => { if (state.img) render(); });
+
+el.qualityRange.addEventListener('input', e => {
+  state.manualQuality = parseInt(e.target.value);
+  el.qualityNum.textContent = state.manualQuality;
+});
+el.qualityRange.addEventListener('change', () => { if (state.img) render(); });
+
+// ============ CROP EDITOR INTERACTION ============
+let drag = null; // {type: 'move'|'resize-tl'..., startX, startY, startRect}
+
+function setupCropInteraction() {
+  el.cropStage.onclick = null;
+  el.cropStage.onmousedown = null;
+  el.cropStage.ontouchstart = null;
+
+  if (state.cropMode === 'focal') {
+    el.cropStage.onclick = e => {
+      const rect = el.cropImg.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / state.displayScale;
+      const y = (e.clientY - rect.top) / state.displayScale;
+      state.focalPoint = {
+        x: clamp(x, 0, state.img.naturalWidth),
+        y: clamp(y, 0, state.img.naturalHeight)
+      };
+      state.cropRect = computeCropFromFocal();
+      render();
+    };
+  } else if (state.cropMode === 'manual') {
+    const start = (clientX, clientY, target) => {
+      const rect = el.cropImg.getBoundingClientRect();
+      const isHandle = target.classList.contains('handle');
+      drag = {
+        type: isHandle ? 'resize-' + target.dataset.corner : 'move',
+        startMX: clientX - rect.left,
+        startMY: clientY - rect.top,
+        startRect: { ...state.cropRect }
+      };
+      e_prevent();
+    };
+    function e_prevent() {}
+
+    el.cropStage.onmousedown = e => {
+      e.preventDefault();
+      start(e.clientX, e.clientY, e.target);
+    };
+    el.cropStage.ontouchstart = e => {
+      const t = e.touches[0];
+      start(t.clientX, t.clientY, e.target);
+    };
+  }
+}
+
+window.addEventListener('mousemove', e => onDragMove(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => {
+  if (drag && e.touches[0]) {
+    onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+  }
+}, { passive: false });
+window.addEventListener('mouseup', () => drag = null);
+window.addEventListener('touchend', () => drag = null);
+
+function onDragMove(clientX, clientY) {
+  if (!drag || !state.cropRect) return;
+  const rect = el.cropImg.getBoundingClientRect();
+  const mx = (clientX - rect.left) / state.displayScale;
+  const my = (clientY - rect.top) / state.displayScale;
+  const sx = drag.startMX / state.displayScale;
+  const sy = drag.startMY / state.displayScale;
+  const dx = mx - sx;
+  const dy = my - sy;
+
+  const iw = state.img.naturalWidth;
+  const ih = state.img.naturalHeight;
+  const [W, H] = state.outSize;
+  const aspect = W / H;
+
+  let r = { ...drag.startRect };
+
+  if (drag.type === 'move') {
+    r.x = clamp(r.x + dx, 0, iw - r.w);
+    r.y = clamp(r.y + dy, 0, ih - r.h);
+  } else {
+    // resize keeping aspect ratio, anchored to opposite corner
+    const corner = drag.type.replace('resize-', '');
+    const ax = (corner === 'tl' || corner === 'bl') ? r.x + r.w : r.x; // anchor x
+    const ay = (corner === 'tl' || corner === 'tr') ? r.y + r.h : r.y; // anchor y
+    const tx = (corner === 'tl' || corner === 'bl') ? r.x + dx : r.x + r.w + dx;
+    const ty = (corner === 'tl' || corner === 'tr') ? r.y + dy : r.y + r.h + dy;
+    let newW = Math.abs(ax - tx);
+    let newH = Math.abs(ay - ty);
+    // enforce aspect
+    if (newW / newH > aspect) newW = newH * aspect;
+    else newH = newW / aspect;
+    // min size
+    const minW = Math.min(80, iw * 0.1);
+    if (newW < minW) { newW = minW; newH = newW / aspect; }
+    // compute new rect anchored
+    const nx = (corner === 'tl' || corner === 'bl') ? ax - newW : ax;
+    const ny = (corner === 'tl' || corner === 'tr') ? ay - newH : ay;
+    // clamp inside image
+    if (nx < 0 || ny < 0 || nx + newW > iw || ny + newH > ih) {
+      // shrink to fit
+      const maxW = Math.min(
+        (corner === 'tl' || corner === 'bl') ? ax : iw - ax,
+        ((corner === 'tl' || corner === 'tr') ? ay : ih - ay) * aspect
+      );
+      newW = Math.max(minW, Math.min(newW, maxW));
+      newH = newW / aspect;
+    }
+    r.x = (corner === 'tl' || corner === 'bl') ? ax - newW : ax;
+    r.y = (corner === 'tl' || corner === 'tr') ? ay - newH : ay;
+    r.w = newW;
+    r.h = newH;
+    r.x = clamp(r.x, 0, iw - r.w);
+    r.y = clamp(r.y, 0, ih - r.h);
+  }
+
+  state.cropRect = r;
+  drawCropOverlay();
+  // debounce final render
+  clearTimeout(onDragMove._t);
+  onDragMove._t = setTimeout(() => render(false), 100);
+}
+
+// ============ CROP COMPUTATION ============
+function getMaxCropRect(iw, ih, aspect) {
+  // largest rect with given aspect that fits inside iw×ih
+  let cw = iw, ch = iw / aspect;
+  if (ch > ih) { ch = ih; cw = ih * aspect; }
+  return { w: cw, h: ch };
+}
+
+function computeCropFromFocal() {
+  const iw = state.img.naturalWidth;
+  const ih = state.img.naturalHeight;
+  const [W, H] = state.outSize;
+  const aspect = W / H;
+  const { w: cw, h: ch } = getMaxCropRect(iw, ih, aspect);
+
+  const fx = state.focalPoint ? state.focalPoint.x : iw / 2;
+  const fy = state.focalPoint ? state.focalPoint.y : ih / 2;
+
+  let x = fx - cw / 2;
+  let y = fy - ch / 2;
+  x = clamp(x, 0, iw - cw);
+  y = clamp(y, 0, ih - ch);
+  return { x, y, w: cw, h: ch };
+}
+
+function computeCenterCrop() {
+  const iw = state.img.naturalWidth;
+  const ih = state.img.naturalHeight;
+  const [W, H] = state.outSize;
+  const aspect = W / H;
+  const { w: cw, h: ch } = getMaxCropRect(iw, ih, aspect);
+  return { x: (iw - cw) / 2, y: (ih - ch) / 2, w: cw, h: ch };
+}
+
+// ============ SMART CROP (heuristic saliency) ============
+function computeSmartCrop() {
+  const iw = state.img.naturalWidth;
+  const ih = state.img.naturalHeight;
+  const [W, H] = state.outSize;
+  const aspect = W / H;
+  const { w: cw, h: ch } = getMaxCropRect(iw, ih, aspect);
+
+  // 1) downscale image to small saliency map
+  const SW = 64;
+  const SH = Math.round(SW * ih / iw);
+  const small = document.createElement('canvas');
+  small.width = SW; small.height = SH;
+  const sctx = small.getContext('2d');
+  sctx.drawImage(state.img, 0, 0, SW, SH);
+  const data = sctx.getImageData(0, 0, SW, SH).data;
+
+  // 2) compute saliency per pixel = edge magnitude + saturation + contrast
+  const sal = new Float32Array(SW * SH);
+  for (let y = 1; y < SH - 1; y++) {
+    for (let x = 1; x < SW - 1; x++) {
+      const i = (y * SW + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      // sobel-like edge on luminance
+      const lum = (a,b,c) => 0.299*a + 0.587*b + 0.114*c;
+      const L = lum(r,g,b);
+      const Lr = lum(data[i+4], data[i+5], data[i+6]);
+      const Ll = lum(data[i-4], data[i-3], data[i-2]);
+      const Ld = lum(data[(y+1)*SW*4 + x*4], data[(y+1)*SW*4 + x*4+1], data[(y+1)*SW*4 + x*4+2]);
+      const Lu = lum(data[(y-1)*SW*4 + x*4], data[(y-1)*SW*4 + x*4+1], data[(y-1)*SW*4 + x*4+2]);
+      const edge = Math.abs(Lr - Ll) + Math.abs(Ld - Lu);
+      // saturation
+      const max = Math.max(r,g,b), min = Math.min(r,g,b);
+      const sat = max === 0 ? 0 : (max - min) / max * 255;
+      // skin-tone-ish boost (rough — pinkish hues)
+      let skin = 0;
+      if (r > 95 && g > 40 && b > 20 && r > g && r > b && (r - Math.min(g,b)) > 15) skin = 80;
+      sal[y * SW + x] = edge * 1.2 + sat * 0.4 + skin;
+    }
+  }
+
+  // 3) slide crop window over saliency map, find max sum
+  // crop window in small space:
+  const wW = (cw / iw) * SW;
+  const wH = (ch / ih) * SH;
+  // use integral image for fast sum
+  const integ = new Float32Array((SW+1) * (SH+1));
+  for (let y = 1; y <= SH; y++) {
+    for (let x = 1; x <= SW; x++) {
+      integ[y*(SW+1)+x] = sal[(y-1)*SW + (x-1)]
+        + integ[(y-1)*(SW+1)+x]
+        + integ[y*(SW+1)+(x-1)]
+        - integ[(y-1)*(SW+1)+(x-1)];
+    }
+  }
+  function rectSum(x, y, w, h) {
+    const x2 = Math.min(SW, Math.round(x + w));
+    const y2 = Math.min(SH, Math.round(y + h));
+    const x1 = Math.max(0, Math.round(x));
+    const y1 = Math.max(0, Math.round(y));
+    return integ[y2*(SW+1)+x2] - integ[y1*(SW+1)+x2] - integ[y2*(SW+1)+x1] + integ[y1*(SW+1)+x1];
+  }
+
+  let bestX = 0, bestY = 0, bestScore = -Infinity;
+  const stepX = Math.max(1, Math.round((SW - wW) / 20));
+  const stepY = Math.max(1, Math.round((SH - wH) / 20));
+  for (let y = 0; y <= SH - wH; y += stepY) {
+    for (let x = 0; x <= SW - wW; x += stepX) {
+      // small bias toward center to prevent extreme edge crops on uniform images
+      const cxBias = 1 - Math.abs((x + wW/2) - SW/2) / (SW/2) * 0.15;
+      const cyBias = 1 - Math.abs((y + wH/2) - SH/2) / (SH/2) * 0.15;
+      const score = rectSum(x, y, wW, wH) * cxBias * cyBias;
+      if (score > bestScore) {
+        bestScore = score;
+        bestX = x; bestY = y;
+      }
+    }
+  }
+
+  // 4) map back to image coords
+  const x = bestX / SW * iw;
+  const y = bestY / SH * ih;
+  return { x: clamp(x, 0, iw - cw), y: clamp(y, 0, ih - ch), w: cw, h: ch };
+}
+
+// ============ MAIN RENDER ============
+async function render(updateOverlay = true) {
+  if (!state.img) return;
+
+  const [W, H] = state.outSize;
+  const img = state.img;
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // toggle preview vs crop editor
+  const inCropEditor = (state.fitMode === 'crop' &&
+                        (state.cropMode === 'focal' || state.cropMode === 'manual'));
+  if (inCropEditor) {
+    el.previewWrap.classList.add('hidden');
+    el.cropEditor.classList.remove('hidden');
+    el.previewTitle.textContent = state.cropMode === 'focal' ? 'จุดโฟกัส' : 'ลากปรับกรอบ';
+  } else {
+    el.previewWrap.classList.remove('hidden');
+    el.cropEditor.classList.add('hidden');
+    el.previewTitle.textContent = 'ตัวอย่าง';
+  }
+
+  // ===== CROP MODE =====
+  if (state.fitMode === 'crop') {
+    // compute crop rect if not set
+    if (!state.cropRect) {
+      if (state.cropMode === 'smart') {
+        state.cropRect = computeSmartCrop();
+      } else if (state.cropMode === 'focal') {
+        state.cropRect = computeCropFromFocal();
+      } else {
+        state.cropRect = computeCenterCrop();
+      }
+    }
+
+    // warn if heavy crop (lost > 30% area)
+    const coverArea = state.cropRect.w * state.cropRect.h;
+    const fullArea = iw * ih;
+    const lostPct = (1 - coverArea / fullArea) * 100;
+    if (lostPct > 30) {
+      el.cropWarn.classList.remove('hidden');
+      el.cropWarn.textContent = `⚠ จะตัดของออก ${Math.round(lostPct)}% ของพื้นที่ภาพ`;
+    } else {
+      el.cropWarn.classList.add('hidden');
+    }
+
+    const r = state.cropRect;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, W, H);
+
+    if (inCropEditor && updateOverlay) {
+      drawCropOverlay();
+      setupCropInteraction();
+    }
+  }
+  // ===== LETTERBOX / BLUR =====
+  else {
+    const scale = Math.min(W / iw, H / ih);
+    const drawW = iw * scale, drawH = ih * scale;
+    const dx = (W - drawW) / 2, dy = (H - drawH) / 2;
+
+    if (state.fitMode === 'blur') {
+      const coverScale = Math.max(W / iw, H / ih);
+      const cw = iw * coverScale, ch = ih * coverScale;
+      const cx = (W - cw) / 2, cy = (H - ch) / 2;
+      ctx.filter = `blur(${state.blurStrength}px) brightness(0.85)`;
+      const overscan = state.blurStrength * 1.5;
+      ctx.drawImage(img, cx - overscan, cy - overscan, cw + overscan*2, ch + overscan*2);
+      ctx.filter = 'none';
+    } else {
+      let bg = state.bgColor;
+      if (bg === 'auto') bg = await getAverageColor(img);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+  }
+
+  // encode
+  let blob, quality;
+  if (state.compressMode === 'manual') {
+    quality = state.manualQuality / 100;
+    blob = await canvasToBlob(canvas, quality);
+  } else {
+    const result = await autoCompress(canvas, state.targetKB * 1024);
+    blob = result.blob; quality = result.quality;
+  }
+
+  state.finalBlob = blob;
+  state.finalQuality = Math.round(quality * 100);
+
+  if (!inCropEditor) drawPreview(canvas);
+  updateStats(blob);
+  el.downloadBtn.disabled = false;
+}
+
+function canvasToBlob(canvas, quality) {
+  return new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/jpeg', quality));
+}
+
+async function autoCompress(canvas, targetBytes) {
+  let lo = 0.4, hi = 0.95, best = null, bestQ = 0.85;
+  for (let i = 0; i < 7; i++) {
+    const q = (lo + hi) / 2;
+    const blob = await canvasToBlob(canvas, q);
+    if (blob.size > targetBytes) { hi = q; }
+    else { lo = q; best = blob; bestQ = q; }
+  }
+  if (!best) { best = await canvasToBlob(canvas, 0.4); bestQ = 0.4; }
+  return { blob: best, quality: bestQ };
+}
+
+async function getAverageColor(img) {
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 16;
+  const cx = c.getContext('2d');
+  cx.drawImage(img, 0, 0, 16, 16);
+  const d = cx.getImageData(0, 0, 16, 16).data;
+  let r=0, g=0, b=0;
+  const n = d.length / 4;
+  for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+  return `rgb(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)})`;
+}
+
+function drawPreview(srcCanvas) {
+  const pc = el.previewCanvas;
+  const maxW = 800;
+  const scale = Math.min(1, maxW / srcCanvas.width);
+  pc.width = srcCanvas.width * scale;
+  pc.height = srcCanvas.height * scale;
+  const pctx = pc.getContext('2d');
+  pctx.imageSmoothingQuality = 'high';
+  pctx.drawImage(srcCanvas, 0, 0, pc.width, pc.height);
+  el.previewInfo.textContent = `${srcCanvas.width} × ${srcCanvas.height}`;
+}
+
+function updateStats(blob) {
+  const [W,H] = state.outSize;
+  el.statOutSize.textContent = fmtBytes(blob.size);
+  el.statOutDim.textContent = `${W} × ${H}`;
+  const reduction = Math.round((1 - blob.size / state.origSize) * 100);
+  const stat = el.statReduction;
+  if (reduction > 0) { stat.textContent = '−' + reduction + '%'; stat.className = 'stat-value good'; }
+  else { stat.textContent = '+' + Math.abs(reduction) + '%'; stat.className = 'stat-value bad'; }
+  el.statQuality.textContent = state.finalQuality;
+  el.statQualityMode.textContent = state.compressMode === 'auto' ? 'อัตโนมัติ' : 'กำหนดเอง';
+}
+
+// ============ CROP OVERLAY ============
+function drawCropOverlay() {
+  if (!state.cropRect) return;
+  // wait for image to be rendered
+  requestAnimationFrame(() => {
+    const imgRect = el.cropImg.getBoundingClientRect();
+    if (imgRect.width === 0) {
+      setTimeout(drawCropOverlay, 50);
+      return;
+    }
+    state.displayScale = imgRect.width / state.img.naturalWidth;
+    const s = state.displayScale;
+
+    const r = state.cropRect;
+    el.cropOverlay.innerHTML = '';
+
+    // crop frame
+    const frame = document.createElement('div');
+    frame.className = 'crop-frame';
+    frame.style.left = (r.x * s) + 'px';
+    frame.style.top = (r.y * s) + 'px';
+    frame.style.width = (r.w * s) + 'px';
+    frame.style.height = (r.h * s) + 'px';
+
+    if (state.cropMode === 'manual') {
+      ['tl','tr','bl','br'].forEach(corner => {
+        const h = document.createElement('div');
+        h.className = 'handle ' + corner;
+        h.dataset.corner = corner;
+        frame.appendChild(h);
+      });
+    }
+    el.cropOverlay.appendChild(frame);
+
+    // focal dot
+    if (state.cropMode === 'focal' && state.focalPoint) {
+      const dot = document.createElement('div');
+      dot.className = 'focal-dot';
+      dot.style.left = (state.focalPoint.x * s) + 'px';
+      dot.style.top = (state.focalPoint.y * s) + 'px';
+      el.cropOverlay.appendChild(dot);
+    }
+
+    // hint text
+    if (state.cropMode === 'focal' && !state.focalPoint) {
+      el.cropHint.textContent = 'คลิกบนภาพเพื่อกำหนดจุดโฟกัส';
+    } else if (state.cropMode === 'focal') {
+      el.cropHint.textContent = 'คลิกที่อื่นเพื่อย้ายจุดโฟกัส';
+    } else if (state.cropMode === 'manual') {
+      el.cropHint.textContent = 'ลากกรอบเพื่อย้าย หรือลากมุมเพื่อย่อ/ขยาย';
+    }
+  });
+}
+
+// recalculate overlay on window resize
+window.addEventListener('resize', () => {
+  if (state.fitMode === 'crop' && (state.cropMode === 'focal' || state.cropMode === 'manual')) {
+    drawCropOverlay();
+  }
+});
+
+// ============ DOWNLOAD ============
+el.downloadBtn.addEventListener('click', () => {
+  if (!state.finalBlob) return;
+  const origName = state.origFile.name.replace(/\.[^.]+$/, '');
+  const [W,H] = state.outSize;
+  const fname = `${origName}_${W}x${H}.jpg`;
+  const url = URL.createObjectURL(state.finalBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('ดาวน์โหลดแล้ว · ' + fname);
+});
+</script>
+</body>
+</html>
