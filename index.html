@@ -147,6 +147,79 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px -6px rgba(0,0,0,0.15);
   }
 
+  /* PLACEMENT EDITOR (letterbox / blur drag) */
+  .place-editor {
+    padding: 24px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .place-frame {
+    position: relative;
+    display: block;
+    max-width: 100%;
+    box-shadow: 0 4px 16px -4px rgba(0,0,0,0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  .place-bg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  .place-image {
+    position: absolute;
+    cursor: move;
+    box-shadow: 0 0 0 1.5px rgba(255,255,255,0.9), 0 0 0 2.5px var(--ink);
+  }
+  .place-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .place-image .handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    z-index: 2;
+  }
+  .place-image .handle.tl { top: -8px; left: -8px; cursor: nwse-resize; }
+  .place-image .handle.tr { top: -8px; right: -8px; cursor: nesw-resize; }
+  .place-image .handle.bl { bottom: -8px; left: -8px; cursor: nesw-resize; }
+  .place-image .handle.br { bottom: -8px; right: -8px; cursor: nwse-resize; }
+
+  .place-toolbar {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 300;
+  }
+  .place-reset {
+    appearance: none;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 980px;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .place-reset:hover { border-color: var(--ink); color: var(--ink); }
+
   /* CROP EDITOR */
   .crop-editor {
     padding: 24px;
@@ -297,7 +370,7 @@
     background: var(--bg);
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    padding: 8px 10px;
+    padding: 8px 8px;
     cursor: pointer;
     text-align: left;
     font-family: inherit;
@@ -305,6 +378,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
+    overflow: hidden;
   }
   .preset:hover { border-color: var(--text-3); }
   .preset.active {
@@ -319,13 +394,19 @@
     font-size: 11px;
     font-weight: 500;
     color: var(--text);
-    line-height: 1.2;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .preset-dim {
     font-size: 10px;
     color: var(--text-3);
     font-weight: 300;
-    line-height: 1.2;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .custom-size-row {
@@ -340,15 +421,15 @@
   }
   .swap-btn {
     appearance: none;
-    width: 32px;
+    width: 36px;
+    flex-shrink: 0;
     background: var(--bg);
     border: 1px solid var(--line);
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-2);
     transition: all 0.15s;
-    flex-shrink: 0;
     font-family: inherit;
   }
   .swap-btn:hover {
@@ -357,12 +438,15 @@
     transform: rotate(180deg);
   }
 
-  .num-row { display: flex; gap: 8px; margin-top: 8px; }
+  .num-row { display: flex; gap: 6px; margin-top: 8px; align-items: stretch; }
   .num-input {
-    flex: 1; border: 1px solid var(--line); background: var(--bg);
+    flex: 1 1 0;
+    min-width: 0;
+    border: 1px solid var(--line); background: var(--bg);
     border-radius: 6px; padding: 8px 10px;
     font-family: inherit; font-size: 12px; outline: none;
     transition: border-color 0.15s;
+    width: 100%;
   }
   .num-input:focus { border-color: var(--ink); }
 
@@ -447,17 +531,6 @@
 
   .hidden { display: none !important; }
 
-  .toast {
-    position: fixed; bottom: 32px; left: 50%;
-    transform: translateX(-50%) translateY(120%);
-    background: var(--text); color: white;
-    padding: 12px 20px; border-radius: 980px;
-    font-size: 13px; z-index: 100;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 12px 32px -8px rgba(0,0,0,0.3);
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
@@ -507,9 +580,27 @@
         <div class="preview-info" id="preview-info">—</div>
       </div>
 
-      <!-- regular preview (letterbox/blur/auto crop result) -->
+      <!-- regular preview (static letterbox/blur/crop result) -->
       <div class="preview-canvas-wrap" id="preview-wrap">
         <canvas id="preview-canvas"></canvas>
+      </div>
+
+      <!-- placement editor (letterbox/blur with drag) -->
+      <div class="place-editor hidden" id="place-editor">
+        <div class="place-frame" id="place-frame">
+          <canvas class="place-bg" id="place-bg"></canvas>
+          <div class="place-image" id="place-image">
+            <img id="place-img" alt="" draggable="false">
+            <div class="handle tl" data-corner="tl"></div>
+            <div class="handle tr" data-corner="tr"></div>
+            <div class="handle bl" data-corner="bl"></div>
+            <div class="handle br" data-corner="br"></div>
+          </div>
+        </div>
+        <div class="place-toolbar">
+          <span class="place-hint" id="place-hint">ลากเพื่อย้าย · ลากมุมเพื่อย่อ/ขยาย</span>
+          <button class="place-reset" id="place-reset">กลับกลาง</button>
+        </div>
       </div>
 
       <!-- crop editor (focal/manual modes) -->
@@ -670,8 +761,6 @@
 
 <footer>Cover Tool · ประมวลผลภาพในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์</footer>
 
-<div class="toast" id="toast">Processing</div>
-
 <script>
 // ============ STATE ============
 const state = {
@@ -683,6 +772,10 @@ const state = {
 
   bgColor: '#ffffff',
   blurStrength: 40,
+
+  // placement in OUTPUT canvas pixel coordinates (for letterbox/blur drag)
+  // null = use default center-fit
+  placement: null,          // {x, y, w, h} in output px
 
   // crop state in IMAGE pixel coordinates
   cropRect: null,           // {x, y, w, h} in original image px
@@ -714,6 +807,14 @@ const el = {
   cropOverlay: $('crop-overlay'),
   cropHint: $('crop-hint'),
 
+  placeEditor: $('place-editor'),
+  placeFrame: $('place-frame'),
+  placeBg: $('place-bg'),
+  placeImage: $('place-image'),
+  placeImg: $('place-img'),
+  placeHint: $('place-hint'),
+  placeReset: $('place-reset'),
+
   sizeSeg: document.querySelectorAll('#size-seg button'),
   customSize: $('custom-size'),
   customW: $('custom-w'), customH: $('custom-h'),
@@ -741,7 +842,6 @@ const el = {
   qualityRange: $('quality-range'), qualityNum: $('quality-num'),
 
   downloadBtn: $('download-btn'), resetBtn: $('reset-btn'),
-  toast: $('toast'),
 
   statOrigSize: $('stat-orig-size'), statOrigDim: $('stat-orig-dim'),
   statOutSize: $('stat-out-size'), statOutDim: $('stat-out-dim'),
@@ -754,12 +854,6 @@ function fmtBytes(b) {
   if (b < 1024) return b + ' B';
   if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
   return (b/1024/1024).toFixed(2) + ' MB';
-}
-function showToast(msg) {
-  el.toast.textContent = msg;
-  el.toast.classList.add('show');
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => el.toast.classList.remove('show'), 2200);
 }
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
@@ -780,7 +874,7 @@ el.dropzone.addEventListener('drop', e => {
 });
 
 function handleFile(file) {
-  if (!file.type.startsWith('image/')) { showToast('ไฟล์ไม่ใช่รูปภาพ'); return; }
+  if (!file.type.startsWith('image/')) { alert('ไฟล์ไม่ใช่รูปภาพ'); return; }
   state.origFile = file;
   state.origSize = file.size;
   const reader = new FileReader();
@@ -789,14 +883,16 @@ function handleFile(file) {
     img.onload = () => {
       state.img = img;
       el.cropImg.src = e.target.result;
+      el.placeImg.src = e.target.result;
       el.hero.classList.add('hidden');
       el.workspace.classList.remove('hidden');
       el.workspace.classList.add('fade-in');
       el.statOrigSize.textContent = fmtBytes(state.origSize);
       el.statOrigDim.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
-      // reset crop state for new image
+      // reset state for new image
       state.focalPoint = null;
       state.cropRect = null;
+      state.placement = null;
       render();
     };
     img.src = e.target.result;
@@ -806,7 +902,7 @@ function handleFile(file) {
 
 el.resetBtn.addEventListener('click', () => {
   state.img = null; state.origFile = null; state.finalBlob = null;
-  state.focalPoint = null; state.cropRect = null;
+  state.focalPoint = null; state.cropRect = null; state.placement = null;
   el.fileInput.value = '';
   el.workspace.classList.add('hidden');
   el.hero.classList.remove('hidden');
@@ -1231,16 +1327,23 @@ async function render(updateOverlay = true) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // toggle preview vs crop editor
+  // determine which editor mode we're in
   const inCropEditor = (state.fitMode === 'crop' &&
                         (state.cropMode === 'focal' || state.cropMode === 'manual'));
+  const inPlaceEditor = (state.fitMode === 'letterbox' || state.fitMode === 'blur');
+
+  // toggle visibility
+  el.previewWrap.classList.add('hidden');
+  el.cropEditor.classList.add('hidden');
+  el.placeEditor.classList.add('hidden');
   if (inCropEditor) {
-    el.previewWrap.classList.add('hidden');
     el.cropEditor.classList.remove('hidden');
     el.previewTitle.textContent = state.cropMode === 'focal' ? 'จุดโฟกัส' : 'ลากปรับกรอบ';
+  } else if (inPlaceEditor) {
+    el.placeEditor.classList.remove('hidden');
+    el.previewTitle.textContent = 'ลากปรับตำแหน่งและขนาด';
   } else {
     el.previewWrap.classList.remove('hidden');
-    el.cropEditor.classList.add('hidden');
     el.previewTitle.textContent = 'ตัวอย่าง';
   }
 
@@ -1278,13 +1381,14 @@ async function render(updateOverlay = true) {
       setupCropInteraction();
     }
   }
-  // ===== LETTERBOX / BLUR =====
+  // ===== LETTERBOX / BLUR (with placement) =====
   else {
-    const scale = Math.min(W / iw, H / ih);
-    const drawW = iw * scale, drawH = ih * scale;
-    const dx = (W - drawW) / 2, dy = (H - drawH) / 2;
+    // default placement = centered contain-fit
+    if (!state.placement) state.placement = computeDefaultPlacement();
+    const p = state.placement;
 
     if (state.fitMode === 'blur') {
+      // blurred background = cover-fit of original image
       const coverScale = Math.max(W / iw, H / ih);
       const cw = iw * coverScale, ch = ih * coverScale;
       const cx = (W - cw) / 2, cy = (H - ch) / 2;
@@ -1300,7 +1404,11 @@ async function render(updateOverlay = true) {
     }
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, dx, dy, drawW, drawH);
+    ctx.drawImage(img, p.x, p.y, p.w, p.h);
+
+    if (inPlaceEditor && updateOverlay) {
+      setupPlaceEditor(canvas);
+    }
   }
 
   // encode
@@ -1316,9 +1424,18 @@ async function render(updateOverlay = true) {
   state.finalBlob = blob;
   state.finalQuality = Math.round(quality * 100);
 
-  if (!inCropEditor) drawPreview(canvas);
+  if (!inCropEditor && !inPlaceEditor) drawPreview(canvas);
   updateStats(blob);
   el.downloadBtn.disabled = false;
+}
+
+function computeDefaultPlacement() {
+  const [W, H] = state.outSize;
+  const iw = state.img.naturalWidth;
+  const ih = state.img.naturalHeight;
+  const scale = Math.min(W / iw, H / ih);
+  const w = iw * scale, h = ih * scale;
+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };
 }
 
 function canvasToBlob(canvas, quality) {
@@ -1445,7 +1562,6 @@ el.downloadBtn.addEventListener('click', () => {
   a.href = url; a.download = fname;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast('ดาวน์โหลดแล้ว · ' + fname);
 });
 </script>
 </body>
