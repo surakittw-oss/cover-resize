@@ -2,11 +2,15 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cover Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#e62227">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Image Tool</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root {
     --bg: #ffffff;
@@ -38,7 +42,9 @@
     line-height: 1.5;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
+  body { overscroll-behavior-y: none; }
 
   /* NAV */
   nav {
@@ -52,9 +58,298 @@
     max-width: 1280px; margin: 0 auto;
     padding: 14px 32px;
     display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  @media (max-width: 600px) {
+    .nav-inner { padding: 12px 16px; }
+    .nav-meta { display: none; }
   }
   .logo { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
   .nav-meta { font-size: 12px; color: var(--text-3); font-weight: 300; }
+
+  /* TABS */
+  .tabs {
+    background: var(--bg);
+    border-bottom: 1px solid var(--line-soft);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    gap: 4px;
+    min-width: max-content;
+  }
+  @media (max-width: 600px) {
+    .tabs-inner { padding: 0 16px; }
+    .tab { padding: 12px 16px 10px !important; }
+    .tab-desc { display: none; }
+  }
+  .tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 16px 20px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: all 0.18s;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  .tab:hover:not(.active) { background: var(--surface); }
+  .tab.active {
+    border-bottom-color: var(--ink);
+  }
+  .tab-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .tab.active .tab-name { color: var(--ink); }
+  .tab-desc {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 300;
+  }
+
+  .view { display: block; }
+  .view.hidden { display: none; }
+
+  /* BATCH WORKSPACE */
+  .batch-workspace {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+  @media (max-width: 768px) {
+    .batch-workspace { padding: 20px; }
+  }
+
+  .batch-toolbar {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 200px 1fr 200px auto;
+    gap: 24px;
+    align-items: end;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 1100px) {
+    .batch-toolbar {
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .batch-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  }
+  @media (max-width: 600px) {
+    .batch-toolbar {
+      grid-template-columns: 1fr;
+      padding: 16px 18px;
+      gap: 16px;
+    }
+    .batch-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .batch-actions .btn-secondary,
+    .batch-actions .btn-primary {
+      width: 100%;
+    }
+  }
+  .batch-tool-group {}
+  .batch-tool-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .batch-tool-label .val {
+    font-weight: 400;
+    color: var(--text-3);
+  }
+  .batch-actions {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .batch-actions .btn-secondary {
+    width: auto;
+    margin-top: 0;
+    white-space: nowrap;
+  }
+  .batch-actions .btn-primary {
+    width: auto;
+    padding: 10px 20px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .batch-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 600px) {
+    .batch-summary { grid-template-columns: repeat(2, 1fr); }
+  }
+  .batch-summary-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+  }
+  .batch-summary-label {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .batch-summary-value {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .batch-summary-value.good { color: var(--good); }
+  @media (max-width: 600px) {
+    .batch-summary-item { padding: 12px 14px; }
+    .batch-summary-value { font-size: 16px; }
+  }
+
+  .batch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 600px) {
+    .batch-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+  }
+  .batch-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .batch-card:hover {
+    box-shadow: 0 4px 16px -4px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+  }
+  .batch-card.processing {
+    opacity: 0.6;
+  }
+  .batch-card.processing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent, rgba(230,34,39,0.15), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    pointer-events: none;
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  .batch-card-thumb {
+    aspect-ratio: 850/567;
+    background:
+      linear-gradient(45deg, var(--surface-2) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--surface-2) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--surface-2) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--surface-2) 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+    background-color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .batch-card-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+  }
+  .batch-card-info {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .batch-card-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .batch-card-stats {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 300;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .batch-card-stats .delta {
+    font-weight: 500;
+    color: var(--good);
+  }
+  .batch-card-actions {
+    display: flex;
+    border-top: 1px solid var(--line-soft);
+  }
+  .batch-card-btn {
+    flex: 1;
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-right: 1px solid var(--line-soft);
+  }
+  .batch-card-btn:last-child { border-right: none; }
+  .batch-card-btn:hover { background: var(--bg); color: var(--ink); }
+  .batch-card-btn.danger:hover { color: var(--hot); }
+
+  /* progress on download all button */
+  .btn-progress {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-progress-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: rgba(255,255,255,0.15);
+    transition: width 0.2s;
+    pointer-events: none;
+  }
 
   /* HERO */
   .hero {
@@ -108,10 +403,26 @@
     gap: 32px; align-items: start;
   }
   @media (max-width: 960px) {
-    .workspace { grid-template-columns: 1fr; padding: 24px 20px 60px; }
+    .workspace { grid-template-columns: 1fr; padding: 24px 20px 60px; gap: 20px; }
     .hero { padding: 40px 20px; }
     .hero h1 { font-size: 38px; }
     .hero h1 .light { font-size: 22px; }
+    .dropzone { padding: 50px 24px; }
+    .dropzone-title { font-size: 18px; }
+    .controls { position: static !important; }
+  }
+  @media (max-width: 600px) {
+    .hero { padding: 32px 16px; }
+    .hero h1 { font-size: 30px; line-height: 1.1; }
+    .hero h1 .light { font-size: 18px; }
+    .hero-sub { font-size: 14px; margin-bottom: 32px; }
+    .dropzone { padding: 40px 20px; }
+    .dropzone-icon { width: 52px; height: 52px; font-size: 24px; margin-bottom: 16px; }
+    .dropzone-title { font-size: 16px; }
+    .dropzone-sub { font-size: 12px; }
+    .preview-canvas-wrap { padding: 16px; min-height: 200px; }
+    .controls { padding: 18px; }
+    .preview-head { padding: 12px 16px; }
   }
 
   /* PREVIEW */
@@ -142,7 +453,7 @@
     min-height: 320px;
   }
   .preview-canvas-wrap canvas {
-    max-width: 100%; max-height: 480px;
+    max-width: 100%; max-height: min(480px, 60vh);
     display: block; border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px -6px rgba(0,0,0,0.15);
   }
@@ -192,10 +503,24 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     z-index: 2;
   }
+  /* enlarge touch hit area without changing visual size */
+  .place-image .handle::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
   .place-image .handle.tl { top: -8px; left: -8px; cursor: nwse-resize; }
   .place-image .handle.tr { top: -8px; right: -8px; cursor: nesw-resize; }
   .place-image .handle.bl { bottom: -8px; left: -8px; cursor: nesw-resize; }
   .place-image .handle.br { bottom: -8px; right: -8px; cursor: nwse-resize; }
+  /* bigger handles on touch devices */
+  @media (max-width: 768px) {
+    .place-image .handle { width: 18px; height: 18px; }
+    .place-image .handle.tl { top: -10px; left: -10px; }
+    .place-image .handle.tr { top: -10px; right: -10px; }
+    .place-image .handle.bl { bottom: -10px; left: -10px; }
+    .place-image .handle.br { bottom: -10px; right: -10px; }
+  }
 
   .place-toolbar {
     margin-top: 14px;
@@ -233,11 +558,12 @@
     user-select: none;
     -webkit-user-select: none;
     box-shadow: 0 4px 16px -4px rgba(0,0,0,0.15);
+    touch-action: none;
   }
   .crop-stage img {
     display: block;
     max-width: 100%;
-    max-height: 480px;
+    max-height: min(480px, 60vh);
     pointer-events: none;
   }
   .crop-overlay {
@@ -274,10 +600,22 @@
     border-radius: 50%;
     pointer-events: auto;
   }
+  .handle::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
   .handle.tl { top: -7px; left: -7px; cursor: nwse-resize; }
   .handle.tr { top: -7px; right: -7px; cursor: nesw-resize; }
   .handle.bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
   .handle.br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+  @media (max-width: 768px) {
+    .handle { width: 16px; height: 16px; border-width: 2px; }
+    .handle.tl { top: -9px; left: -9px; }
+    .handle.tr { top: -9px; right: -9px; }
+    .handle.bl { bottom: -9px; left: -9px; }
+    .handle.br { bottom: -9px; right: -9px; }
+  }
 
   /* focal point dot */
   .focal-dot {
@@ -319,6 +657,10 @@
   .stat-value.good { color: var(--good); }
   .stat-value.bad { color: var(--hot); }
   .stat-sub { font-size: 11px; color: var(--text-4); margin-top: 4px; font-weight: 300; }
+  @media (max-width: 600px) {
+    .stat { padding: 14px 16px; }
+    .stat-value { font-size: 18px; }
+  }
 
   /* CONTROLS */
   .controls {
@@ -449,6 +791,11 @@
     width: 100%;
   }
   .num-input:focus { border-color: var(--ink); }
+  /* prevent iOS zoom on input focus */
+  @media (max-width: 768px) {
+    .num-input { font-size: 16px; padding: 10px 12px; }
+    .swap-btn { width: 40px !important; font-size: 16px; }
+  }
 
   input[type=range] {
     -webkit-appearance: none; appearance: none;
@@ -542,6 +889,10 @@
     padding: 24px 32px; text-align: center;
     font-size: 12px; color: var(--text-4);
     font-weight: 300; border-top: 1px solid var(--line-soft);
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  @media (max-width: 600px) {
+    footer { padding: 20px 16px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   }
 </style>
 </head>
@@ -549,10 +900,26 @@
 
 <nav>
   <div class="nav-inner">
-    <div class="logo">Cover Tool</div>
+    <div class="logo">Image Tool</div>
     <div class="nav-meta">ประมวลผลในเบราว์เซอร์ · ไม่อัปโหลด</div>
   </div>
 </nav>
+
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab active" data-view="cover">
+      <span class="tab-name">Cover</span>
+      <span class="tab-desc">ปกเว็บทีละภาพ · ปรับละเอียด</span>
+    </button>
+    <button class="tab" data-view="batch">
+      <span class="tab-name">Batch</span>
+      <span class="tab-desc">ภาพประกอบหลายภาพ · 850 × 567</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ COVER VIEW ============ -->
+<div class="view view-cover" id="view-cover">
 
 <section class="hero" id="hero">
   <h1>
@@ -759,7 +1126,95 @@
   </aside>
 </div>
 
-<footer>Cover Tool · ประมวลผลภาพในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์</footer>
+</div><!-- /view-cover -->
+
+<!-- ============ BATCH VIEW ============ -->
+<div class="view view-batch hidden" id="view-batch">
+
+  <!-- Batch hero (initial) -->
+  <section class="hero" id="batch-hero">
+    <h1>
+      ย่อภาพประกอบหลายภาพ<br>
+      <span class="light">รวดเร็ว · ครั้งเดียวเสร็จ</span>
+    </h1>
+    <p class="hero-sub">
+      ลากภาพหลายไฟล์ลงไปพร้อมกัน ระบบจะย่อให้ขนาด 850 × 567 อัตโนมัติ
+    </p>
+
+    <div class="dropzone" id="batch-dropzone">
+      <input type="file" id="batch-file-input" accept="image/*" multiple>
+      <div class="dropzone-icon">+</div>
+      <div class="dropzone-title">วางหลายภาพพร้อมกัน หรือคลิกเพื่อเลือก</div>
+      <div class="dropzone-sub">JPG · PNG · WEBP · เลือกได้หลายไฟล์</div>
+    </div>
+  </section>
+
+  <!-- Batch workspace (after upload) -->
+  <div class="batch-workspace hidden" id="batch-workspace">
+
+    <!-- Settings bar -->
+    <div class="batch-toolbar">
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">ขนาด</div>
+        <div class="num-row">
+          <input type="number" class="num-input" id="batch-w" value="850" placeholder="W">
+          <button class="swap-btn" id="batch-swap" title="สลับกว้าง/สูง">⇄</button>
+          <input type="number" class="num-input" id="batch-h" value="567" placeholder="H">
+        </div>
+      </div>
+
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">วิธีจัดการ aspect ratio ต่าง</div>
+        <div class="seg seg-3" id="batch-fit-seg">
+          <button class="active" data-fit="smart">Smart Crop</button>
+          <button data-fit="white">พื้นขาว</button>
+          <button data-fit="blur">เบลอ BG</button>
+        </div>
+      </div>
+
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">
+          ขนาดเป้าหมาย
+          <span class="val" id="batch-target-num">200 KB</span>
+        </div>
+        <input type="range" id="batch-target-range" min="50" max="800" value="200" step="10">
+      </div>
+
+      <div class="batch-actions">
+        <button class="btn-secondary" id="batch-add-more">+ เพิ่มภาพ</button>
+        <button class="btn-primary" id="batch-download-all" disabled>
+          <span id="batch-download-label">ดาวน์โหลดทั้งหมด (ZIP)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="batch-summary" id="batch-summary">
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">จำนวนไฟล์</div>
+        <div class="batch-summary-value" id="batch-count">0</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ขนาดรวมเดิม</div>
+        <div class="batch-summary-value" id="batch-orig-total">—</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ขนาดรวมใหม่</div>
+        <div class="batch-summary-value" id="batch-out-total">—</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ลดลงรวม</div>
+        <div class="batch-summary-value good" id="batch-reduction">—</div>
+      </div>
+    </div>
+
+    <!-- Image grid -->
+    <div class="batch-grid" id="batch-grid"></div>
+
+  </div>
+</div><!-- /view-batch -->
+
+<footer>Image Tool · ประมวลผลภาพในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์</footer>
 
 <script>
 // ============ STATE ============
@@ -1718,6 +2173,449 @@ el.downloadBtn.addEventListener('click', () => {
   a.href = url; a.download = fname;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+// ============================================================
+// ============ TAB SWITCHING ============
+// ============================================================
+const tabButtons = document.querySelectorAll('.tab');
+const viewCover = document.getElementById('view-cover');
+const viewBatch = document.getElementById('view-batch');
+
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    if (view === 'cover') {
+      viewCover.classList.remove('hidden');
+      viewBatch.classList.add('hidden');
+    } else {
+      viewCover.classList.add('hidden');
+      viewBatch.classList.remove('hidden');
+    }
+  });
+});
+
+// ============================================================
+// ============ BATCH TOOL ============
+// ============================================================
+const batchState = {
+  items: [],          // [{id, file, img, origSize, blob, blobSize, status, dataUrl}]
+  outSize: [850, 567],
+  fitMode: 'smart',   // 'smart' | 'white' | 'blur'
+  targetKB: 200,
+  nextId: 1,
+};
+
+const bel = {
+  hero: document.getElementById('batch-hero'),
+  workspace: document.getElementById('batch-workspace'),
+  dropzone: document.getElementById('batch-dropzone'),
+  fileInput: document.getElementById('batch-file-input'),
+  w: document.getElementById('batch-w'),
+  h: document.getElementById('batch-h'),
+  swap: document.getElementById('batch-swap'),
+  fitSeg: document.querySelectorAll('#batch-fit-seg button'),
+  targetRange: document.getElementById('batch-target-range'),
+  targetNum: document.getElementById('batch-target-num'),
+  addMore: document.getElementById('batch-add-more'),
+  downloadAll: document.getElementById('batch-download-all'),
+  downloadLabel: document.getElementById('batch-download-label'),
+  grid: document.getElementById('batch-grid'),
+  count: document.getElementById('batch-count'),
+  origTotal: document.getElementById('batch-orig-total'),
+  outTotal: document.getElementById('batch-out-total'),
+  reduction: document.getElementById('batch-reduction'),
+};
+
+// ----- File handling -----
+bel.dropzone.addEventListener('click', () => bel.fileInput.click());
+bel.fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handleBatchFiles(e.target.files);
+  bel.fileInput.value = '';
+});
+['dragover','dragenter'].forEach(evt => {
+  bel.dropzone.addEventListener(evt, e => { e.preventDefault(); bel.dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  bel.dropzone.addEventListener(evt, e => { e.preventDefault(); bel.dropzone.classList.remove('drag'); });
+});
+bel.dropzone.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) handleBatchFiles(e.dataTransfer.files);
+});
+
+bel.addMore.addEventListener('click', () => bel.fileInput.click());
+
+async function handleBatchFiles(files) {
+  const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!imgFiles.length) { alert('ไม่พบไฟล์รูปภาพ'); return; }
+
+  // switch to workspace view
+  bel.hero.classList.add('hidden');
+  bel.workspace.classList.remove('hidden');
+
+  // load all files into items first (parallel)
+  const loadPromises = imgFiles.map(file => loadImageFile(file));
+  const loaded = await Promise.all(loadPromises);
+
+  for (const item of loaded) {
+    if (item) batchState.items.push(item);
+  }
+  renderBatchGrid();
+  updateBatchSummary();
+
+  // process all in parallel
+  await Promise.all(batchState.items
+    .filter(it => it.status === 'pending')
+    .map(it => processBatchItem(it)));
+
+  updateBatchSummary();
+  bel.downloadAll.disabled = batchState.items.every(it => !it.blob);
+}
+
+function loadImageFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          id: batchState.nextId++,
+          file,
+          img,
+          origSize: file.size,
+          dataUrl: e.target.result,
+          blob: null,
+          blobSize: 0,
+          status: 'pending',
+        });
+      };
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ----- Processing -----
+async function processBatchItem(item) {
+  item.status = 'processing';
+  updateCardStatus(item);
+
+  const [W, H] = batchState.outSize;
+  const img = item.img;
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  if (batchState.fitMode === 'smart') {
+    // smart crop using saliency
+    const r = computeBatchSmartCrop(img, W, H);
+    ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, W, H);
+  } else if (batchState.fitMode === 'blur') {
+    // blur background contain-fit
+    const coverScale = Math.max(W / iw, H / ih);
+    const cw = iw * coverScale, ch = ih * coverScale;
+    const cx = (W - cw) / 2, cy = (H - ch) / 2;
+    ctx.filter = 'blur(40px) brightness(0.85)';
+    const ov = 60;
+    ctx.drawImage(img, cx - ov, cy - ov, cw + ov*2, ch + ov*2);
+    ctx.filter = 'none';
+    const scale = Math.min(W / iw, H / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } else {
+    // white background contain-fit
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    const scale = Math.min(W / iw, H / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  }
+
+  // auto-compress to target
+  const result = await autoCompress(canvas, batchState.targetKB * 1024);
+  item.blob = result.blob;
+  item.blobSize = result.blob.size;
+  item.quality = Math.round(result.quality * 100);
+  item.status = 'done';
+  updateCardStatus(item);
+}
+
+// shared smart crop for batch (uses saliency)
+function computeBatchSmartCrop(img, W, H) {
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+  const aspect = W / H;
+  let cw = iw, ch = iw / aspect;
+  if (ch > ih) { ch = ih; cw = ih * aspect; }
+
+  const SW = 64;
+  const SH = Math.round(SW * ih / iw);
+  const small = document.createElement('canvas');
+  small.width = SW; small.height = SH;
+  const sctx = small.getContext('2d');
+  sctx.drawImage(img, 0, 0, SW, SH);
+  const data = sctx.getImageData(0, 0, SW, SH).data;
+
+  const sal = new Float32Array(SW * SH);
+  for (let y = 1; y < SH - 1; y++) {
+    for (let x = 1; x < SW - 1; x++) {
+      const i = (y * SW + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const lum = (a,b,c) => 0.299*a + 0.587*b + 0.114*c;
+      const Lr = lum(data[i+4], data[i+5], data[i+6]);
+      const Ll = lum(data[i-4], data[i-3], data[i-2]);
+      const Ld = lum(data[(y+1)*SW*4 + x*4], data[(y+1)*SW*4 + x*4+1], data[(y+1)*SW*4 + x*4+2]);
+      const Lu = lum(data[(y-1)*SW*4 + x*4], data[(y-1)*SW*4 + x*4+1], data[(y-1)*SW*4 + x*4+2]);
+      const edge = Math.abs(Lr - Ll) + Math.abs(Ld - Lu);
+      const max = Math.max(r,g,b), min = Math.min(r,g,b);
+      const sat = max === 0 ? 0 : (max - min) / max * 255;
+      let skin = 0;
+      if (r > 95 && g > 40 && b > 20 && r > g && r > b && (r - Math.min(g,b)) > 15) skin = 80;
+      sal[y * SW + x] = edge * 1.2 + sat * 0.4 + skin;
+    }
+  }
+
+  const integ = new Float32Array((SW+1) * (SH+1));
+  for (let y = 1; y <= SH; y++) {
+    for (let x = 1; x <= SW; x++) {
+      integ[y*(SW+1)+x] = sal[(y-1)*SW + (x-1)]
+        + integ[(y-1)*(SW+1)+x]
+        + integ[y*(SW+1)+(x-1)]
+        - integ[(y-1)*(SW+1)+(x-1)];
+    }
+  }
+  function rectSum(x, y, w, h) {
+    const x2 = Math.min(SW, Math.round(x + w));
+    const y2 = Math.min(SH, Math.round(y + h));
+    const x1 = Math.max(0, Math.round(x));
+    const y1 = Math.max(0, Math.round(y));
+    return integ[y2*(SW+1)+x2] - integ[y1*(SW+1)+x2] - integ[y2*(SW+1)+x1] + integ[y1*(SW+1)+x1];
+  }
+
+  const wW = (cw / iw) * SW;
+  const wH = (ch / ih) * SH;
+  let bestX = 0, bestY = 0, bestScore = -Infinity;
+  const stepX = Math.max(1, Math.round((SW - wW) / 20));
+  const stepY = Math.max(1, Math.round((SH - wH) / 20));
+  for (let y = 0; y <= SH - wH; y += stepY) {
+    for (let x = 0; x <= SW - wW; x += stepX) {
+      const cxBias = 1 - Math.abs((x + wW/2) - SW/2) / (SW/2) * 0.15;
+      const cyBias = 1 - Math.abs((y + wH/2) - SH/2) / (SH/2) * 0.15;
+      const score = rectSum(x, y, wW, wH) * cxBias * cyBias;
+      if (score > bestScore) { bestScore = score; bestX = x; bestY = y; }
+    }
+  }
+  const x = bestX / SW * iw;
+  const y = bestY / SH * ih;
+  return { x: clamp(x, 0, iw - cw), y: clamp(y, 0, ih - ch), w: cw, h: ch };
+}
+
+// ----- Grid render -----
+function renderBatchGrid() {
+  bel.grid.innerHTML = '';
+  for (const item of batchState.items) {
+    bel.grid.appendChild(createBatchCard(item));
+  }
+  bel.count.textContent = batchState.items.length;
+}
+
+function createBatchCard(item) {
+  const card = document.createElement('div');
+  card.className = 'batch-card';
+  card.dataset.id = item.id;
+  if (item.status === 'processing') card.classList.add('processing');
+
+  const thumb = document.createElement('div');
+  thumb.className = 'batch-card-thumb';
+  const tImg = document.createElement('img');
+  tImg.src = item.dataUrl;
+  thumb.appendChild(tImg);
+
+  const info = document.createElement('div');
+  info.className = 'batch-card-info';
+  const name = document.createElement('div');
+  name.className = 'batch-card-name';
+  name.textContent = item.file.name;
+  info.appendChild(name);
+
+  const stats = document.createElement('div');
+  stats.className = 'batch-card-stats';
+  stats.innerHTML = renderCardStats(item);
+  info.appendChild(stats);
+
+  const actions = document.createElement('div');
+  actions.className = 'batch-card-actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'batch-card-btn';
+  dlBtn.textContent = 'ดาวน์โหลด';
+  dlBtn.addEventListener('click', () => downloadBatchItem(item));
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'batch-card-btn danger';
+  removeBtn.textContent = 'ลบ';
+  removeBtn.addEventListener('click', () => removeBatchItem(item.id));
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(removeBtn);
+
+  card.appendChild(thumb);
+  card.appendChild(info);
+  card.appendChild(actions);
+  return card;
+}
+
+function renderCardStats(item) {
+  if (item.status === 'processing' || !item.blob) {
+    return `<span>${fmtBytes(item.origSize)}</span><span>กำลังประมวลผล…</span>`;
+  }
+  const reduction = Math.round((1 - item.blobSize / item.origSize) * 100);
+  const sign = reduction >= 0 ? '−' : '+';
+  return `<span>${fmtBytes(item.origSize)} → ${fmtBytes(item.blobSize)}</span>
+    <span class="delta">${sign}${Math.abs(reduction)}%</span>`;
+}
+
+function updateCardStatus(item) {
+  const card = bel.grid.querySelector(`[data-id="${item.id}"]`);
+  if (!card) return;
+  card.classList.toggle('processing', item.status === 'processing');
+  const stats = card.querySelector('.batch-card-stats');
+  if (stats) stats.innerHTML = renderCardStats(item);
+}
+
+function updateBatchSummary() {
+  bel.count.textContent = batchState.items.length;
+  const origTotal = batchState.items.reduce((s, it) => s + it.origSize, 0);
+  const outTotal = batchState.items.reduce((s, it) => s + (it.blobSize || 0), 0);
+  bel.origTotal.textContent = fmtBytes(origTotal);
+  bel.outTotal.textContent = outTotal > 0 ? fmtBytes(outTotal) : '—';
+  if (origTotal > 0 && outTotal > 0) {
+    const r = Math.round((1 - outTotal / origTotal) * 100);
+    bel.reduction.textContent = (r >= 0 ? '−' : '+') + Math.abs(r) + '%';
+    bel.reduction.className = 'batch-summary-value ' + (r >= 0 ? 'good' : 'bad');
+  } else {
+    bel.reduction.textContent = '—';
+  }
+  bel.downloadAll.disabled = batchState.items.every(it => !it.blob);
+}
+
+function removeBatchItem(id) {
+  batchState.items = batchState.items.filter(it => it.id !== id);
+  renderBatchGrid();
+  updateBatchSummary();
+  if (batchState.items.length === 0) {
+    bel.workspace.classList.add('hidden');
+    bel.hero.classList.remove('hidden');
+  }
+}
+
+function downloadBatchItem(item) {
+  if (!item.blob) return;
+  const origName = item.file.name.replace(/\.[^.]+$/, '');
+  const [W, H] = batchState.outSize;
+  const fname = `${origName}_${W}x${H}.jpg`;
+  const url = URL.createObjectURL(item.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ----- Settings change → reprocess all -----
+async function reprocessAll() {
+  if (!batchState.items.length) return;
+  bel.downloadAll.disabled = true;
+  await Promise.all(batchState.items.map(it => {
+    it.status = 'pending';
+    updateCardStatus(it);
+    return processBatchItem(it);
+  }));
+  updateBatchSummary();
+}
+
+[bel.w, bel.h].forEach(inp => {
+  inp.addEventListener('change', () => {
+    const w = parseInt(bel.w.value) || 850;
+    const h = parseInt(bel.h.value) || 567;
+    batchState.outSize = [w, h];
+    reprocessAll();
+  });
+});
+
+bel.swap.addEventListener('click', () => {
+  const w = parseInt(bel.w.value) || 850;
+  const h = parseInt(bel.h.value) || 567;
+  bel.w.value = h;
+  bel.h.value = w;
+  batchState.outSize = [h, w];
+  reprocessAll();
+});
+
+bel.fitSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    bel.fitSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    batchState.fitMode = btn.dataset.fit;
+    reprocessAll();
+  });
+});
+
+bel.targetRange.addEventListener('input', e => {
+  batchState.targetKB = parseInt(e.target.value);
+  bel.targetNum.textContent = batchState.targetKB + ' KB';
+});
+bel.targetRange.addEventListener('change', () => reprocessAll());
+
+// ----- Download all as ZIP -----
+bel.downloadAll.addEventListener('click', async () => {
+  const ready = batchState.items.filter(it => it.blob);
+  if (!ready.length) return;
+  const [W, H] = batchState.outSize;
+
+  bel.downloadAll.disabled = true;
+  bel.downloadLabel.textContent = 'กำลังสร้าง ZIP…';
+
+  try {
+    const zip = new JSZip();
+    const usedNames = new Map();
+    for (const item of ready) {
+      let base = item.file.name.replace(/\.[^.]+$/, '');
+      let fname = `${base}_${W}x${H}.jpg`;
+      // dedupe
+      const c = (usedNames.get(fname) || 0) + 1;
+      usedNames.set(fname, c);
+      if (c > 1) fname = `${base}_${W}x${H}_${c}.jpg`;
+      zip.file(fname, item.blob);
+    }
+    const blob = await zip.generateAsync(
+      { type: 'blob', compression: 'STORE' },
+      meta => {
+        bel.downloadLabel.textContent = `กำลังสร้าง ZIP… ${Math.round(meta.percent)}%`;
+      }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    a.href = url;
+    a.download = `images_${W}x${H}_${ts}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    alert('สร้าง ZIP ไม่สำเร็จ: ' + err.message);
+  } finally {
+    bel.downloadLabel.textContent = `ดาวน์โหลดทั้งหมด (ZIP)`;
+    bel.downloadAll.disabled = false;
+  }
 });
 </script>
 </body>
