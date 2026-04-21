@@ -381,6 +381,221 @@
     white-space: nowrap;
   }
 
+  /* sharpen toggle */
+  .sharpen-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-2);
+    user-select: none;
+  }
+  .sharpen-toggle input { display: none; }
+  .sharpen-box {
+    width: 30px;
+    height: 18px;
+    background: var(--line);
+    border-radius: 999px;
+    position: relative;
+    transition: background 0.18s;
+    flex-shrink: 0;
+  }
+  .sharpen-box::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.18s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .sharpen-toggle input:checked + .sharpen-box {
+    background: var(--ink);
+  }
+  .sharpen-toggle input:checked + .sharpen-box::after {
+    transform: translateX(12px);
+  }
+  .sharpen-text {
+    line-height: 1.3;
+  }
+
+  /* clickable thumbnail with edit hint */
+  .batch-card-thumb {
+    cursor: pointer;
+    position: relative;
+  }
+  .batch-card-thumb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.18s;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .batch-card-thumb::after {
+    content: '✎ แก้ไข';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 980px;
+    opacity: 0;
+    transition: opacity 0.18s, transform 0.18s;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .batch-card-thumb:hover::before { background: rgba(0,0,0,0.18); }
+  .batch-card-thumb:hover::after {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .batch-card.processing .batch-card-thumb { cursor: default; }
+  .batch-card.processing .batch-card-thumb::after { display: none; }
+  .batch-card-edited::before {
+    content: '';
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 8px; height: 8px;
+    background: var(--ink);
+    border: 1.5px solid white;
+    border-radius: 50%;
+    z-index: 3;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* MODAL CROPPER */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: fadeIn 0.2s ease-out;
+  }
+  .modal-overlay.hidden { display: none; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-card {
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .modal-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .modal-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .modal-close {
+    appearance: none;
+    background: transparent;
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--surface); color: var(--text); }
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .modal-toolbar {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .modal-stage {
+    position: relative;
+    display: inline-block;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 0 4px 16px -4px rgba(0,0,0,0.15);
+    touch-action: none;
+  }
+  .modal-stage img {
+    display: block;
+    max-width: 100%;
+    max-height: min(60vh, 500px);
+    pointer-events: none;
+  }
+  .modal-stage .crop-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .modal-foot {
+    padding: 16px 24px;
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .modal-foot .btn-secondary,
+  .modal-foot .btn-primary {
+    width: auto;
+    margin-top: 0;
+  }
+  .modal-foot .btn-secondary { padding: 10px 20px; }
+  .modal-foot .btn-primary { padding: 10px 24px; font-size: 13px; }
+  @media (max-width: 600px) {
+    .modal-overlay { padding: 12px; }
+    .modal-card { max-height: 95vh; }
+    .modal-body { padding: 16px; }
+    .modal-foot { flex-direction: column-reverse; }
+    .modal-foot .btn-secondary,
+    .modal-foot .btn-primary { width: 100%; }
+  }
+
   .batch-summary {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1411,6 +1626,11 @@
           <span class="val" id="batch-target-num">200 KB</span>
         </div>
         <input type="range" id="batch-target-range" min="50" max="800" value="200" step="10">
+        <label class="sharpen-toggle">
+          <input type="checkbox" id="batch-sharpen" checked>
+          <span class="sharpen-box"></span>
+          <span class="sharpen-text">เพิ่มความคมชัด (Sharpen)</span>
+        </label>
       </div>
 
       <div class="batch-actions">
@@ -1448,6 +1668,34 @@
 </div><!-- /view-batch -->
 
 </div><!-- /app-container -->
+
+<!-- ============ CROP MODAL ============ -->
+<div class="modal-overlay hidden" id="crop-modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title" id="crop-modal-title">แก้ไขภาพ</div>
+      <button class="modal-close" id="crop-modal-close" aria-label="ปิด">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-toolbar">
+        <div class="seg seg-3" id="modal-crop-mode-seg">
+          <button class="active" data-mode="smart">Smart</button>
+          <button data-mode="focal">จุดโฟกัส</button>
+          <button data-mode="manual">ลากปรับ</button>
+        </div>
+      </div>
+      <div class="modal-stage" id="modal-stage">
+        <img id="modal-img" alt="">
+        <div class="crop-overlay" id="modal-overlay"></div>
+      </div>
+      <div class="hint" id="modal-hint" style="text-align:center;">ระบบหาจุดสนใจในภาพและครอปให้</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" id="crop-modal-reset">รีเซ็ตเป็น Smart Crop</button>
+      <button class="btn-primary" id="crop-modal-apply">ใช้งาน</button>
+    </div>
+  </div>
+</div>
 
 <footer>Image Tool · ประมวลผลภาพในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์</footer>
 
@@ -2646,10 +2894,11 @@ tabButtons.forEach(btn => {
 // ============ BATCH TOOL ============
 // ============================================================
 const batchState = {
-  items: [],          // [{id, file, img, origSize, blob, blobSize, status, dataUrl}]
+  items: [],          // [{id, file, img, origSize, blob, blobSize, status, dataUrl, customCrop, customFit}]
   outSize: [850, 567],
   fitMode: 'smart',   // 'smart' | 'white' | 'blur'
   targetKB: 200,
+  sharpen: true,      // apply unsharp mask after downscale
   nextId: 1,
 };
 
@@ -2754,19 +3003,31 @@ async function processBatchItem(item) {
   const iw = img.naturalWidth;
   const ih = img.naturalHeight;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  // determine source rectangle (cropped or full image)
+  let srcRect;
+  if (item.customCrop) {
+    // user-defined crop rect (in image px)
+    srcRect = item.customCrop;
+  } else if (batchState.fitMode === 'smart' || (item.customFit === 'smart')) {
+    srcRect = computeBatchSmartCrop(img, W, H);
+  } else {
+    srcRect = { x: 0, y: 0, w: iw, h: ih };
+  }
 
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  // active fit mode for this item (per-item override possible)
+  const fitMode = item.customFit || batchState.fitMode;
 
-  if (batchState.fitMode === 'smart') {
-    // smart crop using saliency
-    const r = computeBatchSmartCrop(img, W, H);
-    ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, W, H);
-  } else if (batchState.fitMode === 'blur') {
-    // blur background contain-fit
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = W;
+  finalCanvas.height = H;
+  const ctx = finalCanvas.getContext('2d');
+
+  if (fitMode === 'smart' || item.customCrop) {
+    // crop mode → stepped downscale from src rect
+    const cropped = await steppedDownscale(img, srcRect, W, H);
+    ctx.drawImage(cropped, 0, 0);
+  } else if (fitMode === 'blur') {
+    // blur background
     const coverScale = Math.max(W / iw, H / ih);
     const cw = iw * coverScale, ch = ih * coverScale;
     const cx = (W - cw) / 2, cy = (H - ch) / 2;
@@ -2774,25 +3035,137 @@ async function processBatchItem(item) {
     const ov = 60;
     ctx.drawImage(img, cx - ov, cy - ov, cw + ov*2, ch + ov*2);
     ctx.filter = 'none';
+    // foreground: stepped downscale of full image
     const scale = Math.min(W / iw, H / ih);
     const dw = iw * scale, dh = ih * scale;
-    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    const fg = await steppedDownscale(img, { x: 0, y: 0, w: iw, h: ih }, dw, dh);
+    ctx.drawImage(fg, (W - dw) / 2, (H - dh) / 2);
   } else {
-    // white background contain-fit
+    // white background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, W, H);
     const scale = Math.min(W / iw, H / ih);
     const dw = iw * scale, dh = ih * scale;
-    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    const fg = await steppedDownscale(img, { x: 0, y: 0, w: iw, h: ih }, dw, dh);
+    ctx.drawImage(fg, (W - dw) / 2, (H - dh) / 2);
   }
 
-  // auto-compress to target
-  const result = await autoCompress(canvas, batchState.targetKB * 1024);
+  // optional sharpen (unsharp mask)
+  if (batchState.sharpen) {
+    applySharpen(finalCanvas, 0.4);
+  }
+
+  // auto-compress with min quality floor (prevent over-compression)
+  const result = await autoCompressWithFloor(finalCanvas, batchState.targetKB * 1024, 0.75);
   item.blob = result.blob;
   item.blobSize = result.blob.size;
   item.quality = Math.round(result.quality * 100);
   item.status = 'done';
   updateCardStatus(item);
+}
+
+// ============ STEPPED DOWNSCALE ============
+// ย่อรูปทีละ 50% จนใกล้ขนาด target → คุณภาพดีกว่าย่อทีเดียว
+async function steppedDownscale(img, srcRect, targetW, targetH) {
+  const sx = srcRect.x, sy = srcRect.y;
+  const sw = srcRect.w, sh = srcRect.h;
+
+  // first crop to source rect at full quality
+  let curr = document.createElement('canvas');
+  curr.width = sw;
+  curr.height = sh;
+  let cctx = curr.getContext('2d');
+  cctx.imageSmoothingEnabled = true;
+  cctx.imageSmoothingQuality = 'high';
+  cctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+  // step down by 50% until next step would be smaller than target
+  while (curr.width > targetW * 2 && curr.height > targetH * 2) {
+    const newW = Math.max(targetW, Math.floor(curr.width / 2));
+    const newH = Math.max(targetH, Math.floor(curr.height / 2));
+    const next = document.createElement('canvas');
+    next.width = newW;
+    next.height = newH;
+    const nctx = next.getContext('2d');
+    nctx.imageSmoothingEnabled = true;
+    nctx.imageSmoothingQuality = 'high';
+    nctx.drawImage(curr, 0, 0, newW, newH);
+    curr = next;
+    cctx = nctx;
+  }
+
+  // final step to exact target size
+  if (curr.width !== targetW || curr.height !== targetH) {
+    const final = document.createElement('canvas');
+    final.width = targetW;
+    final.height = targetH;
+    const fctx = final.getContext('2d');
+    fctx.imageSmoothingEnabled = true;
+    fctx.imageSmoothingQuality = 'high';
+    fctx.drawImage(curr, 0, 0, targetW, targetH);
+    return final;
+  }
+  return curr;
+}
+
+// ============ UNSHARP MASK SHARPEN ============
+// เพิ่มความคมหลัง downscale (เบาๆ amount 0.3-0.5)
+function applySharpen(canvas, amount) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const src = ctx.getImageData(0, 0, w, h);
+  const dst = ctx.createImageData(w, h);
+  const s = src.data, d = dst.data;
+
+  // 3x3 sharpen kernel: center weight = 1 + 4*amount, edges = -amount
+  const cw = 1 + 4 * amount;
+  const ew = -amount;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+
+      // edge pixels: just copy
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) {
+        d[i]   = s[i];
+        d[i+1] = s[i+1];
+        d[i+2] = s[i+2];
+        d[i+3] = s[i+3];
+        continue;
+      }
+
+      const top    = ((y - 1) * w + x) * 4;
+      const bot    = ((y + 1) * w + x) * 4;
+      const left   = (y * w + (x - 1)) * 4;
+      const right  = (y * w + (x + 1)) * 4;
+
+      for (let c = 0; c < 3; c++) {
+        const v = s[i + c] * cw
+                + (s[top + c] + s[bot + c] + s[left + c] + s[right + c]) * ew;
+        d[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+      d[i + 3] = s[i + 3];
+    }
+  }
+
+  ctx.putImageData(dst, 0, 0);
+}
+
+// ============ AUTO COMPRESS WITH MIN QUALITY ============
+async function autoCompressWithFloor(canvas, targetBytes, minQ) {
+  let lo = minQ, hi = 0.95, best = null, bestQ = minQ;
+  for (let i = 0; i < 7; i++) {
+    const q = (lo + hi) / 2;
+    const blob = await canvasToBlob(canvas, q);
+    if (blob.size > targetBytes) { hi = q; }
+    else { lo = q; best = blob; bestQ = q; }
+  }
+  // if best is still over target, keep the smallest we got at minQ
+  if (!best) {
+    best = await canvasToBlob(canvas, minQ);
+    bestQ = minQ;
+  }
+  return { blob: best, quality: bestQ };
 }
 
 // shared smart crop for batch (uses saliency)
@@ -2879,12 +3252,17 @@ function createBatchCard(item) {
   card.className = 'batch-card';
   card.dataset.id = item.id;
   if (item.status === 'processing') card.classList.add('processing');
+  if (item.customCrop) card.classList.add('batch-card-edited');
 
   const thumb = document.createElement('div');
   thumb.className = 'batch-card-thumb';
+  thumb.title = 'คลิกเพื่อแก้ไขการครอป';
   const tImg = document.createElement('img');
   tImg.src = item.dataUrl;
   thumb.appendChild(tImg);
+  thumb.addEventListener('click', () => {
+    if (item.status !== 'processing') openCropModal(item);
+  });
 
   const info = document.createElement('div');
   info.className = 'batch-card-info';
@@ -3061,6 +3439,325 @@ bel.downloadAll.addEventListener('click', async () => {
     bel.downloadLabel.textContent = `ดาวน์โหลดทั้งหมด (ZIP)`;
     bel.downloadAll.disabled = false;
   }
+});
+
+// ----- Sharpen toggle -----
+const sharpenInput = document.getElementById('batch-sharpen');
+sharpenInput.addEventListener('change', e => {
+  batchState.sharpen = e.target.checked;
+  reprocessAll();
+});
+
+// ============================================================
+// ============ PER-IMAGE CROP MODAL ============
+// ============================================================
+const modal = {
+  overlay: document.getElementById('crop-modal'),
+  title: document.getElementById('crop-modal-title'),
+  close: document.getElementById('crop-modal-close'),
+  reset: document.getElementById('crop-modal-reset'),
+  apply: document.getElementById('crop-modal-apply'),
+  modeSeg: document.querySelectorAll('#modal-crop-mode-seg button'),
+  stage: document.getElementById('modal-stage'),
+  img: document.getElementById('modal-img'),
+  overlay_inner: document.getElementById('modal-overlay'),
+  hint: document.getElementById('modal-hint'),
+};
+
+const modalState = {
+  item: null,
+  mode: 'smart',          // 'smart' | 'focal' | 'manual'
+  cropRect: null,         // {x, y, w, h} in image px
+  focalPoint: null,
+  displayScale: 1,
+};
+
+function openCropModal(item) {
+  modalState.item = item;
+  modalState.mode = item.customCrop ? 'manual' : 'smart';
+  modalState.cropRect = item.customCrop ? { ...item.customCrop } : null;
+  modalState.focalPoint = null;
+
+  modal.title.textContent = `แก้ไข — ${item.file.name}`;
+  modal.img.src = item.dataUrl;
+
+  // sync mode buttons
+  modal.modeSeg.forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === modalState.mode);
+  });
+
+  modal.overlay.classList.remove('hidden');
+
+  modal.img.onload = () => {
+    initModalCrop();
+  };
+  // if image already loaded (cached), trigger immediately
+  if (modal.img.complete && modal.img.naturalWidth > 0) {
+    initModalCrop();
+  }
+}
+
+function closeCropModal() {
+  modal.overlay.classList.add('hidden');
+  modalState.item = null;
+}
+
+modal.close.addEventListener('click', closeCropModal);
+modal.overlay.addEventListener('click', e => {
+  if (e.target === modal.overlay) closeCropModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !modal.overlay.classList.contains('hidden')) {
+    closeCropModal();
+  }
+});
+
+modal.modeSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modal.modeSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    modalState.mode = btn.dataset.mode;
+    modalState.cropRect = null;
+    modalState.focalPoint = null;
+    initModalCrop();
+  });
+});
+
+function initModalCrop() {
+  if (!modalState.item) return;
+  const img = modalState.item.img;
+  const [W, H] = batchState.outSize;
+  const aspect = W / H;
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+
+  // compute initial crop rect based on mode
+  if (!modalState.cropRect) {
+    if (modalState.mode === 'smart') {
+      modalState.cropRect = computeBatchSmartCrop(img, W, H);
+    } else if (modalState.mode === 'focal') {
+      // use center as initial focal
+      const fx = modalState.focalPoint ? modalState.focalPoint.x : iw / 2;
+      const fy = modalState.focalPoint ? modalState.focalPoint.y : ih / 2;
+      let cw = iw, ch = iw / aspect;
+      if (ch > ih) { ch = ih; cw = ih * aspect; }
+      let x = fx - cw / 2, y = fy - ch / 2;
+      x = clamp(x, 0, iw - cw);
+      y = clamp(y, 0, ih - ch);
+      modalState.cropRect = { x, y, w: cw, h: ch };
+    } else {
+      // manual = center crop initial
+      let cw = iw, ch = iw / aspect;
+      if (ch > ih) { ch = ih; cw = ih * aspect; }
+      modalState.cropRect = { x: (iw - cw) / 2, y: (ih - ch) / 2, w: cw, h: ch };
+    }
+  }
+
+  // update hint
+  if (modalState.mode === 'smart') {
+    modal.hint.textContent = 'ระบบหาจุดสนใจในภาพและครอปให้';
+  } else if (modalState.mode === 'focal') {
+    modal.hint.textContent = modalState.focalPoint
+      ? 'คลิกที่อื่นเพื่อย้ายจุดโฟกัส'
+      : 'คลิกบนภาพเพื่อกำหนดจุดโฟกัส';
+  } else {
+    modal.hint.textContent = 'ลากกรอบเพื่อย้าย หรือลากมุมเพื่อย่อ/ขยาย';
+  }
+
+  drawModalOverlay();
+  setupModalInteraction();
+}
+
+function drawModalOverlay() {
+  if (!modalState.cropRect || !modalState.item) return;
+  requestAnimationFrame(() => {
+    const imgRect = modal.img.getBoundingClientRect();
+    if (imgRect.width === 0) {
+      setTimeout(drawModalOverlay, 50);
+      return;
+    }
+    modalState.displayScale = imgRect.width / modalState.item.img.naturalWidth;
+    const s = modalState.displayScale;
+    const r = modalState.cropRect;
+    modal.overlay_inner.innerHTML = '';
+
+    const frame = document.createElement('div');
+    frame.className = 'crop-frame';
+    frame.style.left = (r.x * s) + 'px';
+    frame.style.top = (r.y * s) + 'px';
+    frame.style.width = (r.w * s) + 'px';
+    frame.style.height = (r.h * s) + 'px';
+
+    if (modalState.mode === 'manual') {
+      ['tl','tr','bl','br'].forEach(corner => {
+        const h = document.createElement('div');
+        h.className = 'handle ' + corner;
+        h.dataset.corner = corner;
+        frame.appendChild(h);
+      });
+    }
+    modal.overlay_inner.appendChild(frame);
+
+    if (modalState.mode === 'focal' && modalState.focalPoint) {
+      const dot = document.createElement('div');
+      dot.className = 'focal-dot';
+      dot.style.left = (modalState.focalPoint.x * s) + 'px';
+      dot.style.top = (modalState.focalPoint.y * s) + 'px';
+      modal.overlay_inner.appendChild(dot);
+    }
+  });
+}
+
+let modalDrag = null;
+
+function setupModalInteraction() {
+  modal.stage.onclick = null;
+  modal.stage.onmousedown = null;
+  modal.stage.ontouchstart = null;
+
+  if (modalState.mode === 'focal') {
+    modal.stage.onclick = e => {
+      const rect = modal.img.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / modalState.displayScale;
+      const y = (e.clientY - rect.top) / modalState.displayScale;
+      const iw = modalState.item.img.naturalWidth;
+      const ih = modalState.item.img.naturalHeight;
+      modalState.focalPoint = {
+        x: clamp(x, 0, iw),
+        y: clamp(y, 0, ih)
+      };
+      // recompute crop from focal
+      const [W, H] = batchState.outSize;
+      const aspect = W / H;
+      let cw = iw, ch = iw / aspect;
+      if (ch > ih) { ch = ih; cw = ih * aspect; }
+      let cx = modalState.focalPoint.x - cw / 2;
+      let cy = modalState.focalPoint.y - ch / 2;
+      cx = clamp(cx, 0, iw - cw);
+      cy = clamp(cy, 0, ih - ch);
+      modalState.cropRect = { x: cx, y: cy, w: cw, h: ch };
+      drawModalOverlay();
+      modal.hint.textContent = 'คลิกที่อื่นเพื่อย้ายจุดโฟกัส';
+    };
+  } else if (modalState.mode === 'manual') {
+    const start = (clientX, clientY, target) => {
+      const isHandle = target.classList.contains('handle');
+      const rect = modal.img.getBoundingClientRect();
+      modalDrag = {
+        type: isHandle ? 'resize-' + target.dataset.corner : 'move',
+        startMX: clientX - rect.left,
+        startMY: clientY - rect.top,
+        startRect: { ...modalState.cropRect }
+      };
+    };
+    modal.stage.onmousedown = e => {
+      e.preventDefault();
+      start(e.clientX, e.clientY, e.target);
+    };
+    modal.stage.ontouchstart = e => {
+      const t = e.touches[0];
+      start(t.clientX, t.clientY, e.target);
+      e.preventDefault();
+    };
+  }
+}
+
+function onModalDragMove(clientX, clientY) {
+  if (!modalDrag || !modalState.cropRect) return;
+  const rect = modal.img.getBoundingClientRect();
+  const s = modalState.displayScale;
+  const mx = (clientX - rect.left) / s;
+  const my = (clientY - rect.top) / s;
+  const sx = modalDrag.startMX / s;
+  const sy = modalDrag.startMY / s;
+  const dx = mx - sx, dy = my - sy;
+
+  const iw = modalState.item.img.naturalWidth;
+  const ih = modalState.item.img.naturalHeight;
+  const [W, H] = batchState.outSize;
+  const aspect = W / H;
+
+  let r = { ...modalDrag.startRect };
+
+  if (modalDrag.type === 'move') {
+    r.x = clamp(r.x + dx, 0, iw - r.w);
+    r.y = clamp(r.y + dy, 0, ih - r.h);
+  } else {
+    const corner = modalDrag.type.replace('resize-', '');
+    const ax = (corner === 'tl' || corner === 'bl') ? r.x + r.w : r.x;
+    const ay = (corner === 'tl' || corner === 'tr') ? r.y + r.h : r.y;
+    const tx = (corner === 'tl' || corner === 'bl') ? r.x + dx : r.x + r.w + dx;
+    const ty = (corner === 'tl' || corner === 'tr') ? r.y + dy : r.y + r.h + dy;
+    let newW = Math.abs(ax - tx);
+    let newH = Math.abs(ay - ty);
+    if (newW / newH > aspect) newW = newH * aspect;
+    else newH = newW / aspect;
+    const minW = Math.min(80, iw * 0.1);
+    if (newW < minW) { newW = minW; newH = newW / aspect; }
+    const nx = (corner === 'tl' || corner === 'bl') ? ax - newW : ax;
+    const ny = (corner === 'tl' || corner === 'tr') ? ay - newH : ay;
+    if (nx < 0 || ny < 0 || nx + newW > iw || ny + newH > ih) {
+      const maxW = Math.min(
+        (corner === 'tl' || corner === 'bl') ? ax : iw - ax,
+        ((corner === 'tl' || corner === 'tr') ? ay : ih - ay) * aspect
+      );
+      newW = Math.max(minW, Math.min(newW, maxW));
+      newH = newW / aspect;
+    }
+    r.x = (corner === 'tl' || corner === 'bl') ? ax - newW : ax;
+    r.y = (corner === 'tl' || corner === 'tr') ? ay - newH : ay;
+    r.w = newW; r.h = newH;
+    r.x = clamp(r.x, 0, iw - r.w);
+    r.y = clamp(r.y, 0, ih - r.h);
+  }
+  modalState.cropRect = r;
+  drawModalOverlay();
+}
+
+window.addEventListener('mousemove', e => {
+  if (modalDrag) onModalDragMove(e.clientX, e.clientY);
+});
+window.addEventListener('touchmove', e => {
+  if (modalDrag && e.touches[0]) {
+    onModalDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+  }
+}, { passive: false });
+window.addEventListener('mouseup', () => modalDrag = null);
+window.addEventListener('touchend', () => modalDrag = null);
+window.addEventListener('resize', () => {
+  if (!modal.overlay.classList.contains('hidden')) drawModalOverlay();
+});
+
+// reset to smart crop
+modal.reset.addEventListener('click', () => {
+  modalState.item.customCrop = null;
+  modalState.item.customFit = null;
+  modalState.mode = 'smart';
+  modalState.cropRect = null;
+  modalState.focalPoint = null;
+  modal.modeSeg.forEach(b => b.classList.toggle('active', b.dataset.mode === 'smart'));
+  initModalCrop();
+});
+
+// apply crop and reprocess this item only
+modal.apply.addEventListener('click', async () => {
+  if (!modalState.item || !modalState.cropRect) {
+    closeCropModal();
+    return;
+  }
+  const targetItem = modalState.item;
+  targetItem.customCrop = { ...modalState.cropRect };
+  targetItem.customFit = 'smart'; // crop mode in processing
+  closeCropModal();
+  await processBatchItem(targetItem);
+  // re-render the affected card to update edited indicator
+  const card = bel.grid.querySelector(`[data-id="${targetItem.id}"]`);
+  if (card) {
+    const newCard = createBatchCard(targetItem);
+    card.replaceWith(newCard);
+  }
+  updateBatchSummary();
 });
 </script>
 </body>
