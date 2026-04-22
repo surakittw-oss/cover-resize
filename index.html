@@ -255,7 +255,12 @@
     background: var(--bg);
     border-bottom: 1px solid var(--line-soft);
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .tabs::-webkit-scrollbar {
+    display: none; /* Chrome / Safari */
   }
   .tabs-inner {
     max-width: 1280px;
