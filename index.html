@@ -10,6 +10,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// Initialize theme before body renders to prevent flash (FOUC)
+(function() {
+  const saved = localStorage.getItem('image_tool_theme');
+  let theme;
+  if (saved === 'dark' || saved === 'light') {
+    theme = saved;
+  } else {
+    // auto: follow system preference
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -28,9 +42,45 @@
     --hot: #ff3b30;
     --good: #34c759;
     --blue: #0071e3;
+    --nav-bg: rgba(255, 255, 255, 0.95);
     --radius: 12px;
     --radius-sm: 8px;
     --radius-lg: 18px;
+  }
+
+  html[data-theme="dark"] {
+    --bg: #1d1d1f;
+    --surface: #2a2a2c;
+    --surface-2: #323236;
+    --ink: #ff3b41;
+    --ink-hover: #ff5c62;
+    --text: #f5f5f7;
+    --text-2: #d1d1d6;
+    --text-3: #98989d;
+    --text-4: #6e6e73;
+    --line: #48484a;
+    --line-soft: #3a3a3c;
+    --hot: #ff453a;
+    --good: #30d158;
+    --blue: #0a84ff;
+    --nav-bg: rgba(29, 29, 31, 0.95);
+  }
+
+  /* smooth theme transition */
+  html, body, nav, .tab, .dropzone, .feature-card,
+  .preview-card, .controls, .batch-card, .batch-toolbar,
+  .batch-summary-item, .stat, .control-section, .preview-head,
+  .modal-card, .modal-head, .modal-foot, .login-card, .login-mark,
+  .user-badge, .theme-toggle, .num-input, .btn-primary, .btn-secondary,
+  .seg, .seg button, .preset, .swap-btn, .place-reset, .hero-sub,
+  .modal-body, input[type=range], footer {
+    transition: background-color 0.25s ease, color 0.25s ease,
+                border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  /* but skip transition on elements that have their own animations */
+  .dropzone-icon, .user-avatar, .fade-in, .batch-card.processing::after,
+  .ocr-progress-fill {
+    transition: none;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -164,6 +214,54 @@
     align-items: center;
     gap: 16px;
   }
+
+  /* Theme Toggle Button */
+  .theme-toggle {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-2);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .theme-toggle:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+    transform: scale(1.05);
+  }
+  .theme-toggle:active {
+    transform: scale(0.95);
+  }
+  .theme-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease;
+  }
+  .icon-sun { opacity: 1; }
+  .icon-moon { opacity: 0; transform: translate(-50%, -50%) rotate(-90deg); }
+  html[data-theme="dark"] .icon-sun {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  html[data-theme="dark"] .icon-moon {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  @media (max-width: 600px) {
+    .theme-toggle { width: 32px; height: 32px; }
+  }
   .user-badge {
     display: flex;
     align-items: center;
@@ -234,7 +332,7 @@
   /* NAV */
   nav {
     position: sticky; top: 0; z-index: 50;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--nav-bg);
     border-bottom: 1px solid var(--line-soft);
   }
   .nav-inner {
@@ -1412,6 +1510,10 @@
     <div class="logo">Image Tool</div>
     <div class="nav-right">
       <div class="nav-meta">ประมวลผลในเบราว์เซอร์ · ไม่อัปโหลด</div>
+      <button class="theme-toggle" id="theme-toggle" title="สลับโหมดมืด/สว่าง" aria-label="Toggle theme">
+        <svg class="theme-icon icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="theme-icon icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <div class="user-badge hidden" id="user-badge">
         <img class="user-avatar" id="user-avatar" alt="">
         <div class="user-info">
@@ -2198,6 +2300,43 @@ function doSignout(msg) {
 
 loginEl.signout.addEventListener('click', () => {
   if (confirm('ออกจากระบบ?')) doSignout();
+});
+
+// ============================================================
+// ============ THEME TOGGLE ============
+// ============================================================
+const themeToggleBtn = document.getElementById('theme-toggle');
+
+function getCurrentTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'light';
+}
+
+function setTheme(theme, persist = true) {
+  document.documentElement.setAttribute('data-theme', theme);
+  if (persist) {
+    localStorage.setItem('image_tool_theme', theme);
+  }
+  // update meta theme-color for mobile browser chrome
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', theme === 'dark' ? '#1d1d1f' : '#e62227');
+  }
+}
+
+themeToggleBtn.addEventListener('click', () => {
+  const current = getCurrentTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+});
+
+// follow system changes (only if user hasn't explicitly set preference)
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+mq.addEventListener('change', e => {
+  const saved = localStorage.getItem('image_tool_theme');
+  if (saved !== 'dark' && saved !== 'light') {
+    // user has no explicit preference → follow system
+    setTheme(e.matches ? 'dark' : 'light', false);
+  }
 });
 
 // ----- Google Identity Services init -----
