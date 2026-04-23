@@ -1153,6 +1153,49 @@
   }
   .seg-2 { grid-template-columns: 1fr 1fr; }
   .seg-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .seg-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  /* CONVERT specific styles */
+  .convert-toolbar {
+    grid-template-columns: 200px 1fr 200px auto !important;
+  }
+  @media (max-width: 1100px) {
+    .convert-toolbar {
+      grid-template-columns: 1fr 1fr !important;
+    }
+  }
+  @media (max-width: 600px) {
+    .convert-toolbar {
+      grid-template-columns: 1fr !important;
+    }
+  }
+  .convert-toolbar .num-input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* format pill on card */
+  .format-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--surface-2);
+    border-radius: 980px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .format-pill.new {
+    background: var(--ink);
+    color: white;
+  }
+  .format-arrow {
+    color: var(--text-4);
+    font-size: 11px;
+  }
   .seg button {
     appearance: none; border: none; background: transparent;
     font-family: inherit; font-size: 12px; font-weight: 400; color: var(--text-2);
@@ -1428,6 +1471,10 @@
     <button class="tab" data-view="batch">
       <span class="tab-name">Batch</span>
       <span class="tab-desc">ภาพประกอบหลายภาพ · 850 × 567</span>
+    </button>
+    <button class="tab" data-view="convert">
+      <span class="tab-name">Convert</span>
+      <span class="tab-desc">เปลี่ยนนามสกุลไฟล์ · JPG / PNG / WebP / AVIF</span>
     </button>
   </div>
 </div>
@@ -1828,6 +1875,148 @@
 
   </div>
 </div><!-- /view-batch -->
+
+<!-- ============ CONVERT VIEW ============ -->
+<div class="view view-convert hidden" id="view-convert">
+
+  <!-- Convert hero (initial) -->
+  <section class="hero" id="convert-hero">
+    <h1>
+      เปลี่ยนนามสกุลไฟล์ภาพ<br>
+      <span class="light">JPG · PNG · WebP · AVIF</span>
+    </h1>
+    <p class="hero-sub">
+      แปลงไฟล์ภาพเป็น format ที่ต้องการ<br>พร้อมย่อขนาดและปรับคุณภาพได้ในขั้นเดียว
+    </p>
+
+    <div class="dropzone" id="convert-dropzone">
+      <input type="file" id="convert-file-input" accept="image/*" multiple>
+      <div class="dropzone-icon">+</div>
+      <div class="dropzone-title">วางหลายภาพพร้อมกัน หรือคลิกเพื่อเลือก</div>
+      <div class="dropzone-sub">JPG · PNG · WebP · GIF · BMP · AVIF · เลือกได้หลายไฟล์</div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3l4 4-4 4"/>
+            <path d="M21 7H9"/>
+            <path d="M7 21l-4-4 4-4"/>
+            <path d="M3 17h12"/>
+          </svg>
+        </div>
+        <div class="feature-title">แปลง 4 format</div>
+        <div class="feature-desc">JPG · PNG · WebP · AVIF เลือก output ได้อิสระ</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </div>
+        <div class="feature-title">ย่อขนาดได้พร้อมกัน</div>
+        <div class="feature-desc">กำหนด max width แปลงพร้อมย่อในขั้นเดียว</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+          </svg>
+        </div>
+        <div class="feature-title">ปรับ quality ได้</div>
+        <div class="feature-desc">เลือก quality สำหรับ JPG/WebP/AVIF · PNG ไม่มีการบีบอัด</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <path d="M9 13l3 3 5-5"/>
+          </svg>
+        </div>
+        <div class="feature-title">ดาวน์โหลด ZIP</div>
+        <div class="feature-desc">รวมทุกไฟล์ที่แปลงแล้วใน ZIP เดียว</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Convert workspace (after upload) -->
+  <div class="batch-workspace hidden" id="convert-workspace">
+
+    <!-- Settings bar -->
+    <div class="batch-toolbar convert-toolbar">
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">แปลงเป็น</div>
+        <div class="seg seg-4" id="convert-format-seg">
+          <button class="active" data-fmt="jpeg">JPG</button>
+          <button data-fmt="png">PNG</button>
+          <button data-fmt="webp">WebP</button>
+          <button data-fmt="avif">AVIF</button>
+        </div>
+      </div>
+
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">
+          คุณภาพ
+          <span class="val" id="convert-quality-num">90</span>
+        </div>
+        <input type="range" id="convert-quality-range" min="20" max="100" value="90">
+        <div class="hint" id="convert-quality-hint" style="margin-top:4px;">ใช้กับ JPG/WebP/AVIF (PNG ไม่มีผล)</div>
+      </div>
+
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">
+          ย่อขนาด (max width)
+          <label class="sharpen-toggle" style="margin-top:0; gap:6px;">
+            <input type="checkbox" id="convert-resize-toggle">
+            <span class="sharpen-box"></span>
+          </label>
+        </div>
+        <input type="number" class="num-input" id="convert-max-width" value="1920" placeholder="px" disabled>
+        <div class="hint" style="margin-top:4px;">เก็บ aspect ratio · รูปที่เล็กกว่านี้จะไม่ขยาย</div>
+      </div>
+
+      <div class="batch-actions">
+        <button class="btn-secondary" id="convert-add-more">+ เพิ่มภาพ</button>
+        <button class="btn-primary" id="convert-download-all" disabled>
+          <span id="convert-download-label">ดาวน์โหลดทั้งหมด (ZIP)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="batch-summary" id="convert-summary">
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">จำนวนไฟล์</div>
+        <div class="batch-summary-value" id="convert-count">0</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ขนาดรวมเดิม</div>
+        <div class="batch-summary-value" id="convert-orig-total">—</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ขนาดรวมใหม่</div>
+        <div class="batch-summary-value" id="convert-out-total">—</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ลดลงรวม</div>
+        <div class="batch-summary-value good" id="convert-reduction">—</div>
+      </div>
+    </div>
+
+    <!-- Image grid -->
+    <div class="batch-grid" id="convert-grid"></div>
+
+  </div>
+</div><!-- /view-convert -->
 
 </div><!-- /app-container -->
 
@@ -3036,6 +3225,7 @@ el.downloadBtn.addEventListener('click', () => {
 const tabButtons = document.querySelectorAll('.tab');
 const viewCover = document.getElementById('view-cover');
 const viewBatch = document.getElementById('view-batch');
+const viewConvert = document.getElementById('view-convert');
 
 tabButtons.forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3044,8 +3234,10 @@ tabButtons.forEach(btn => {
     const view = btn.dataset.view;
     viewCover.classList.add('hidden');
     viewBatch.classList.add('hidden');
+    viewConvert.classList.add('hidden');
     if (view === 'cover') viewCover.classList.remove('hidden');
     else if (view === 'batch') viewBatch.classList.remove('hidden');
+    else if (view === 'convert') viewConvert.classList.remove('hidden');
   });
 });
 
@@ -3917,6 +4109,470 @@ modal.apply.addEventListener('click', async () => {
     card.replaceWith(newCard);
   }
   updateBatchSummary();
+});
+
+// ============================================================
+// ============ CONVERT TOOL ============
+// ============================================================
+const convertState = {
+  items: [],          // [{id, file, img, origSize, blob, blobSize, status, dataUrl, origFormat}]
+  outputFormat: 'jpeg',  // 'jpeg' | 'png' | 'webp' | 'avif'
+  quality: 0.9,
+  resize: false,
+  maxWidth: 1920,
+  nextId: 1,
+};
+
+const cel = {
+  hero: document.getElementById('convert-hero'),
+  workspace: document.getElementById('convert-workspace'),
+  dropzone: document.getElementById('convert-dropzone'),
+  fileInput: document.getElementById('convert-file-input'),
+  formatSeg: document.querySelectorAll('#convert-format-seg button'),
+  qualityRange: document.getElementById('convert-quality-range'),
+  qualityNum: document.getElementById('convert-quality-num'),
+  qualityHint: document.getElementById('convert-quality-hint'),
+  resizeToggle: document.getElementById('convert-resize-toggle'),
+  maxWidthInput: document.getElementById('convert-max-width'),
+  addMore: document.getElementById('convert-add-more'),
+  downloadAll: document.getElementById('convert-download-all'),
+  downloadLabel: document.getElementById('convert-download-label'),
+  grid: document.getElementById('convert-grid'),
+  count: document.getElementById('convert-count'),
+  origTotal: document.getElementById('convert-orig-total'),
+  outTotal: document.getElementById('convert-out-total'),
+  reduction: document.getElementById('convert-reduction'),
+};
+
+// extension → format map
+const FORMAT_MIME = {
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+};
+const FORMAT_EXT = {
+  jpeg: 'jpg',
+  png: 'png',
+  webp: 'webp',
+  avif: 'avif',
+};
+
+function detectOrigFormat(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'jpeg';
+  if (name.endsWith('.png')) return 'png';
+  if (name.endsWith('.webp')) return 'webp';
+  if (name.endsWith('.avif')) return 'avif';
+  if (name.endsWith('.gif')) return 'gif';
+  if (name.endsWith('.bmp')) return 'bmp';
+  // fallback to mime
+  if (file.type === 'image/jpeg') return 'jpeg';
+  if (file.type === 'image/png') return 'png';
+  if (file.type === 'image/webp') return 'webp';
+  if (file.type === 'image/avif') return 'avif';
+  if (file.type === 'image/gif') return 'gif';
+  if (file.type === 'image/bmp') return 'bmp';
+  return 'unknown';
+}
+
+// ----- File handling -----
+cel.dropzone.addEventListener('click', () => cel.fileInput.click());
+cel.fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handleConvertFiles(e.target.files);
+  cel.fileInput.value = '';
+});
+['dragover','dragenter'].forEach(evt => {
+  cel.dropzone.addEventListener(evt, e => { e.preventDefault(); cel.dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  cel.dropzone.addEventListener(evt, e => { e.preventDefault(); cel.dropzone.classList.remove('drag'); });
+});
+cel.dropzone.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) handleConvertFiles(e.dataTransfer.files);
+});
+
+cel.addMore.addEventListener('click', () => cel.fileInput.click());
+
+async function handleConvertFiles(files) {
+  const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!imgFiles.length) { alert('ไม่พบไฟล์รูปภาพ'); return; }
+
+  cel.hero.classList.add('hidden');
+  cel.workspace.classList.remove('hidden');
+
+  const loadPromises = imgFiles.map(file => loadConvertFile(file));
+  const loaded = await Promise.all(loadPromises);
+
+  for (const item of loaded) {
+    if (item) convertState.items.push(item);
+  }
+  renderConvertGrid();
+  updateConvertSummary();
+
+  // process all in parallel
+  await Promise.all(convertState.items
+    .filter(it => it.status === 'pending')
+    .map(it => processConvertItem(it)));
+
+  updateConvertSummary();
+  cel.downloadAll.disabled = convertState.items.every(it => !it.blob);
+}
+
+function loadConvertFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          id: convertState.nextId++,
+          file,
+          img,
+          origSize: file.size,
+          origFormat: detectOrigFormat(file),
+          dataUrl: e.target.result,
+          blob: null,
+          blobSize: 0,
+          status: 'pending',
+        });
+      };
+      img.onerror = () => {
+        // can't load (e.g. unsupported AVIF in old browser, HEIC, TIFF)
+        console.warn('Failed to load image:', file.name);
+        resolve({
+          id: convertState.nextId++,
+          file,
+          img: null,
+          origSize: file.size,
+          origFormat: detectOrigFormat(file),
+          dataUrl: null,
+          blob: null,
+          blobSize: 0,
+          status: 'error',
+          error: 'Browser อ่านไฟล์ format นี้ไม่ได้',
+        });
+      };
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ----- Processing -----
+async function processConvertItem(item) {
+  if (item.status === 'error' || !item.img) {
+    return;
+  }
+  item.status = 'processing';
+  updateConvertCardStatus(item);
+
+  const img = item.img;
+  let targetW = img.naturalWidth;
+  let targetH = img.naturalHeight;
+
+  // resize if enabled and image is wider than max
+  if (convertState.resize && targetW > convertState.maxWidth) {
+    const scale = convertState.maxWidth / targetW;
+    targetW = convertState.maxWidth;
+    targetH = Math.round(img.naturalHeight * scale);
+  }
+
+  // use stepped downscale if shrinking significantly
+  let canvas;
+  if (targetW < img.naturalWidth * 0.6) {
+    canvas = await steppedDownscale(img, { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight }, targetW, targetH);
+  } else {
+    canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, targetW, targetH);
+  }
+
+  // for JPG/AVIF: fill white bg first if source has transparency (PNG/WebP with alpha)
+  const targetFmt = convertState.outputFormat;
+  if ((targetFmt === 'jpeg' || targetFmt === 'avif') &&
+      (item.origFormat === 'png' || item.origFormat === 'webp' || item.origFormat === 'gif')) {
+    // re-draw with white background
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = canvas.width;
+    bgCanvas.height = canvas.height;
+    const bctx = bgCanvas.getContext('2d');
+    bctx.fillStyle = '#ffffff';
+    bctx.fillRect(0, 0, canvas.width, canvas.height);
+    bctx.drawImage(canvas, 0, 0);
+    canvas = bgCanvas;
+  }
+
+  // encode
+  const mime = FORMAT_MIME[targetFmt];
+  const quality = (targetFmt === 'png') ? undefined : convertState.quality;
+
+  try {
+    const blob = await canvasToFormatBlob(canvas, mime, quality);
+    if (!blob) {
+      item.status = 'error';
+      item.error = 'Browser ไม่รองรับการ export เป็น ' + targetFmt.toUpperCase();
+      updateConvertCardStatus(item);
+      return;
+    }
+    item.blob = blob;
+    item.blobSize = blob.size;
+    item.outputFormat = targetFmt;
+    item.outputDim = [canvas.width, canvas.height];
+    item.status = 'done';
+  } catch (err) {
+    item.status = 'error';
+    item.error = err.message;
+  }
+  updateConvertCardStatus(item);
+}
+
+function canvasToFormatBlob(canvas, mime, quality) {
+  return new Promise(resolve => {
+    if (quality !== undefined) {
+      canvas.toBlob(b => resolve(b), mime, quality);
+    } else {
+      canvas.toBlob(b => resolve(b), mime);
+    }
+  });
+}
+
+// ----- Grid render -----
+function renderConvertGrid() {
+  cel.grid.innerHTML = '';
+  for (const item of convertState.items) {
+    cel.grid.appendChild(createConvertCard(item));
+  }
+  cel.count.textContent = convertState.items.length;
+}
+
+function createConvertCard(item) {
+  const card = document.createElement('div');
+  card.className = 'batch-card';
+  card.dataset.id = item.id;
+  if (item.status === 'processing') card.classList.add('processing');
+
+  const thumb = document.createElement('div');
+  thumb.className = 'batch-card-thumb';
+  if (item.dataUrl) {
+    const tImg = document.createElement('img');
+    tImg.src = item.dataUrl;
+    thumb.appendChild(tImg);
+  } else {
+    thumb.innerHTML = '<div style="color:var(--hot);font-size:11px;text-align:center;padding:20px;">⚠ อ่านไฟล์ไม่ได้</div>';
+  }
+
+  const info = document.createElement('div');
+  info.className = 'batch-card-info';
+  const name = document.createElement('div');
+  name.className = 'batch-card-name';
+  name.textContent = item.file.name;
+  info.appendChild(name);
+
+  const stats = document.createElement('div');
+  stats.className = 'batch-card-stats';
+  stats.innerHTML = renderConvertCardStats(item);
+  info.appendChild(stats);
+
+  const actions = document.createElement('div');
+  actions.className = 'batch-card-actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'batch-card-btn';
+  dlBtn.textContent = 'ดาวน์โหลด';
+  dlBtn.disabled = !item.blob;
+  if (!item.blob) dlBtn.style.opacity = '0.4';
+  dlBtn.addEventListener('click', () => downloadConvertItem(item));
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'batch-card-btn danger';
+  removeBtn.textContent = 'ลบ';
+  removeBtn.addEventListener('click', () => removeConvertItem(item.id));
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(removeBtn);
+
+  card.appendChild(thumb);
+  card.appendChild(info);
+  card.appendChild(actions);
+  return card;
+}
+
+function renderConvertCardStats(item) {
+  if (item.status === 'error') {
+    return `<span style="color:var(--hot);">${item.error || 'ผิดพลาด'}</span>`;
+  }
+  if (item.status === 'processing' || !item.blob) {
+    return `<span class="format-pill">${item.origFormat.toUpperCase()}</span>
+      <span>${fmtBytes(item.origSize)}</span>`;
+  }
+  const reduction = Math.round((1 - item.blobSize / item.origSize) * 100);
+  const sign = reduction >= 0 ? '−' : '+';
+  const deltaClass = reduction >= 0 ? 'delta' : '';
+  return `
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+      <span class="format-pill">${item.origFormat.toUpperCase()}</span>
+      <span class="format-arrow">→</span>
+      <span class="format-pill new">${item.outputFormat.toUpperCase()}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:4px;">
+      <span>${fmtBytes(item.origSize)} → ${fmtBytes(item.blobSize)}</span>
+      <span class="${deltaClass}">${sign}${Math.abs(reduction)}%</span>
+    </div>`;
+}
+
+function updateConvertCardStatus(item) {
+  const card = cel.grid.querySelector(`[data-id="${item.id}"]`);
+  if (!card) return;
+  card.classList.toggle('processing', item.status === 'processing');
+  const stats = card.querySelector('.batch-card-stats');
+  if (stats) stats.innerHTML = renderConvertCardStats(item);
+  // update download button
+  const dlBtn = card.querySelector('.batch-card-btn:not(.danger)');
+  if (dlBtn) {
+    dlBtn.disabled = !item.blob;
+    dlBtn.style.opacity = item.blob ? '' : '0.4';
+  }
+}
+
+function updateConvertSummary() {
+  cel.count.textContent = convertState.items.length;
+  const validItems = convertState.items.filter(it => it.status !== 'error');
+  const origTotal = validItems.reduce((s, it) => s + it.origSize, 0);
+  const outTotal = validItems.reduce((s, it) => s + (it.blobSize || 0), 0);
+  cel.origTotal.textContent = fmtBytes(origTotal);
+  cel.outTotal.textContent = outTotal > 0 ? fmtBytes(outTotal) : '—';
+  if (origTotal > 0 && outTotal > 0) {
+    const r = Math.round((1 - outTotal / origTotal) * 100);
+    cel.reduction.textContent = (r >= 0 ? '−' : '+') + Math.abs(r) + '%';
+    cel.reduction.className = 'batch-summary-value ' + (r >= 0 ? 'good' : 'bad');
+  } else {
+    cel.reduction.textContent = '—';
+    cel.reduction.className = 'batch-summary-value';
+  }
+  cel.downloadAll.disabled = convertState.items.every(it => !it.blob);
+}
+
+function removeConvertItem(id) {
+  convertState.items = convertState.items.filter(it => it.id !== id);
+  renderConvertGrid();
+  updateConvertSummary();
+  if (convertState.items.length === 0) {
+    cel.workspace.classList.add('hidden');
+    cel.hero.classList.remove('hidden');
+  }
+}
+
+function downloadConvertItem(item) {
+  if (!item.blob) return;
+  const origName = item.file.name.replace(/\.[^.]+$/, '');
+  const ext = FORMAT_EXT[item.outputFormat];
+  const fname = `${origName}.${ext}`;
+  const url = URL.createObjectURL(item.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ----- Settings change → reprocess all -----
+async function reprocessConvertAll() {
+  if (!convertState.items.length) return;
+  cel.downloadAll.disabled = true;
+  await Promise.all(convertState.items.map(it => {
+    if (it.status === 'error') return null;
+    it.status = 'pending';
+    updateConvertCardStatus(it);
+    return processConvertItem(it);
+  }));
+  updateConvertSummary();
+}
+
+// ----- Format selector -----
+cel.formatSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    cel.formatSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    convertState.outputFormat = btn.dataset.fmt;
+
+    // toggle quality slider visibility based on format
+    if (convertState.outputFormat === 'png') {
+      cel.qualityRange.disabled = true;
+      cel.qualityRange.style.opacity = '0.4';
+      cel.qualityHint.textContent = 'PNG ไม่มีการบีบอัดแบบ lossy';
+    } else {
+      cel.qualityRange.disabled = false;
+      cel.qualityRange.style.opacity = '';
+      cel.qualityHint.textContent = `ใช้กับ ${convertState.outputFormat.toUpperCase()} · คุณภาพสูง = ไฟล์ใหญ่`;
+    }
+    reprocessConvertAll();
+  });
+});
+
+// ----- Quality slider -----
+cel.qualityRange.addEventListener('input', e => {
+  convertState.quality = parseInt(e.target.value) / 100;
+  cel.qualityNum.textContent = e.target.value;
+});
+cel.qualityRange.addEventListener('change', () => reprocessConvertAll());
+
+// ----- Resize toggle -----
+cel.resizeToggle.addEventListener('change', e => {
+  convertState.resize = e.target.checked;
+  cel.maxWidthInput.disabled = !e.target.checked;
+  reprocessConvertAll();
+});
+
+cel.maxWidthInput.addEventListener('change', e => {
+  const val = parseInt(e.target.value) || 1920;
+  convertState.maxWidth = val;
+  if (convertState.resize) reprocessConvertAll();
+});
+
+// ----- Download all as ZIP -----
+cel.downloadAll.addEventListener('click', async () => {
+  const ready = convertState.items.filter(it => it.blob);
+  if (!ready.length) return;
+
+  cel.downloadAll.disabled = true;
+  cel.downloadLabel.textContent = 'กำลังสร้าง ZIP…';
+
+  try {
+    const zip = new JSZip();
+    const usedNames = new Map();
+    for (const item of ready) {
+      let base = item.file.name.replace(/\.[^.]+$/, '');
+      const ext = FORMAT_EXT[item.outputFormat];
+      let fname = `${base}.${ext}`;
+      const c = (usedNames.get(fname) || 0) + 1;
+      usedNames.set(fname, c);
+      if (c > 1) fname = `${base}_${c}.${ext}`;
+      zip.file(fname, item.blob);
+    }
+    const blob = await zip.generateAsync(
+      { type: 'blob', compression: 'STORE' },
+      meta => {
+        cel.downloadLabel.textContent = `กำลังสร้าง ZIP… ${Math.round(meta.percent)}%`;
+      }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    a.href = url;
+    a.download = `converted_${convertState.outputFormat}_${ts}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    alert('สร้าง ZIP ไม่สำเร็จ: ' + err.message);
+  } finally {
+    cel.downloadLabel.textContent = `ดาวน์โหลดทั้งหมด (ZIP)`;
+    cel.downloadAll.disabled = false;
+  }
 });
 
 </script>
