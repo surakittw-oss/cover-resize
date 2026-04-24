@@ -1074,6 +1074,28 @@
   .place-image .handle.tr { top: -8px; right: -8px; cursor: nesw-resize; }
   .place-image .handle.bl { bottom: -8px; left: -8px; cursor: nesw-resize; }
   .place-image .handle.br { bottom: -8px; right: -8px; cursor: nwse-resize; }
+
+  /* logo overlay on top of place editor */
+  .place-logo-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .place-logo-overlay.hidden { display: none; }
+
+  /* logo overlay on top of crop stage */
+  .crop-logo-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+  }
+  .crop-logo-overlay.hidden { display: none; }
   /* bigger handles on touch devices */
   @media (max-width: 768px) {
     .place-image .handle { width: 18px; height: 18px; }
@@ -1814,6 +1836,7 @@
             <div class="handle bl" data-corner="bl"></div>
             <div class="handle br" data-corner="br"></div>
           </div>
+          <canvas class="place-logo-overlay hidden" id="place-logo-overlay"></canvas>
         </div>
         <div class="place-toolbar">
           <span class="place-hint" id="place-hint">ลากเพื่อย้าย · ลากมุมเพื่อย่อ/ขยาย</span>
@@ -1826,6 +1849,7 @@
         <div class="crop-stage" id="crop-stage">
           <img id="crop-img" alt="">
           <div class="crop-overlay" id="crop-overlay"></div>
+          <canvas class="crop-logo-overlay hidden" id="crop-logo-overlay"></canvas>
         </div>
         <div class="crop-hint" id="crop-hint">คลิกบนภาพเพื่อกำหนดจุดโฟกัส</div>
       </div>
@@ -3269,6 +3293,9 @@ async function render(updateOverlay = true) {
     setupPlaceEditor(canvas);
   }
 
+  // render logo overlay on top of editor previews (so user sees it)
+  renderLogoOnEditors();
+
   // encode
   let blob, quality;
   if (state.compressMode === 'manual') {
@@ -3562,6 +3589,10 @@ window.addEventListener('resize', () => {
       updatePlaceImageDom();
     }
   }
+  // re-render logo overlays on resize
+  if (state.img && state.logoEnabled && state.logoImg) {
+    renderLogoOnEditors();
+  }
 });
 
 // ============================================================
@@ -3779,6 +3810,80 @@ function drawLogoGradient(ctx, W, H, pos) {
   grad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
+}
+
+// render logo + gradient on top of editor previews (place / crop)
+function renderLogoOnEditors() {
+  const placeOverlay = document.getElementById('place-logo-overlay');
+  const cropOverlay = document.getElementById('crop-logo-overlay');
+
+  // hide both first
+  placeOverlay.classList.add('hidden');
+  cropOverlay.classList.add('hidden');
+
+  if (!state.logoEnabled || !state.logoImg) return;
+
+  const inCropEditor = (state.fitMode === 'crop' &&
+                        (state.cropMode === 'focal' || state.cropMode === 'manual'));
+  const inPlaceEditor = (state.fitMode === 'letterbox' || state.fitMode === 'blur');
+
+  if (inPlaceEditor) {
+    // wait for place-frame to have a real size
+    requestAnimationFrame(() => {
+      const frame = document.getElementById('place-frame');
+      const rect = frame.getBoundingClientRect();
+      if (rect.width === 0) return;
+      drawLogoToOverlay(placeOverlay, rect.width, rect.height);
+      placeOverlay.classList.remove('hidden');
+    });
+  } else if (inCropEditor) {
+    // overlay on crop stage — sized to crop image display
+    requestAnimationFrame(() => {
+      const cropImg = document.getElementById('crop-img');
+      const rect = cropImg.getBoundingClientRect();
+      if (rect.width === 0) return;
+      // logo position depends on the CROP rect (not the full image)
+      // draw logo as if the cropped area = full output canvas
+      drawLogoToOverlayWithCropMapping(cropOverlay, rect.width, rect.height);
+      cropOverlay.classList.remove('hidden');
+    });
+  }
+}
+
+function drawLogoToOverlay(canvas, dispW, dispH) {
+  canvas.width = dispW;
+  canvas.height = dispH;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, dispW, dispH);
+  drawLogoOverlay(ctx, dispW, dispH);
+}
+
+// for crop editor: logo appears within the crop rect area only
+function drawLogoToOverlayWithCropMapping(canvas, dispW, dispH) {
+  if (!state.cropRect) return;
+  canvas.width = dispW;
+  canvas.height = dispH;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, dispW, dispH);
+
+  // map crop rect (image px) to display px
+  const iw = state.img.naturalWidth;
+  const ih = state.img.naturalHeight;
+  const scale = dispW / iw;
+  const cr = state.cropRect;
+  const cropDispX = cr.x * scale;
+  const cropDispY = cr.y * scale;
+  const cropDispW = cr.w * scale;
+  const cropDispH = cr.h * scale;
+
+  // clip to crop area + draw logo as if crop rect = full output canvas
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cropDispX, cropDispY, cropDispW, cropDispH);
+  ctx.clip();
+  ctx.translate(cropDispX, cropDispY);
+  drawLogoOverlay(ctx, cropDispW, cropDispH);
+  ctx.restore();
 }
 
 // ============ DOWNLOAD ============
