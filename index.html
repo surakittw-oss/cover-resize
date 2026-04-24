@@ -1253,7 +1253,27 @@
     background: var(--surface);
     border-radius: var(--radius-lg);
     padding: 24px;
-    position: sticky; top: 80px;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* hide scrollbar visual but keep scrollable */
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .controls::-webkit-scrollbar {
+    width: 6px;
+  }
+  .controls::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .controls::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 3px;
+  }
+  .controls::-webkit-scrollbar-thumb:hover {
+    background: var(--text-3);
   }
   .control-section {
     padding-bottom: 20px; margin-bottom: 20px;
