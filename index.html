@@ -1436,6 +1436,45 @@
   .position-picker button.active { background: var(--ink); }
   .position-picker button.active::before { background: white; }
 
+  .logo-custom-btn {
+    appearance: none;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-top: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .logo-custom-btn:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .logo-custom-btn.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: white;
+  }
+
+  /* draggable logo overlay */
+  .place-logo-overlay.draggable,
+  .crop-logo-overlay.draggable {
+    cursor: move;
+    pointer-events: auto;
+  }
+  .place-logo-overlay.dragging,
+  .crop-logo-overlay.dragging {
+    cursor: grabbing;
+  }
+
   /* CONVERT specific styles */
   .convert-toolbar {
     grid-template-columns: 200px 1fr 200px auto !important;
@@ -2054,6 +2093,11 @@
           <button data-pos="bc" title="กลางล่าง"></button>
           <button data-pos="br" title="ขวาล่าง"></button>
         </div>
+        <button class="logo-custom-btn" id="logo-custom-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+          <span>ลากตำแหน่งเอง</span>
+        </button>
+        <div class="hint" id="logo-pos-hint" style="margin-top:6px;display:none;">ลากโลโก้ใน preview เพื่อย้ายตำแหน่ง</div>
 
         <!-- Size slider -->
         <div class="logo-section-label" style="margin-top:14px;">
@@ -2679,7 +2723,8 @@ const state = {
   logoEnabled: false,
   logoImg: null,            // Image object
   logoDataUrl: null,        // for re-init
-  logoPosition: 'tl',       // tl|tc|tr|ml|mc|mr|bl|bc|br
+  logoPosition: 'tl',       // tl|tc|tr|ml|mc|mr|bl|bc|br|custom
+  logoCustomXY: null,       // {x, y} fraction (0..1) when position = 'custom'
   logoSize: 0.15,           // 0.05..0.40 (% of canvas width)
   logoPadding: 0.03,        // 0..0.10 (% of canvas width)
   logoGradient: true,       // gradient overlay on/off
@@ -3712,11 +3757,44 @@ logoEl.removeBtn.addEventListener('click', e => {
 logoEl.positionBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     logoEl.positionBtns.forEach(b => b.classList.remove('active'));
+    document.getElementById('logo-custom-btn').classList.remove('active');
+    document.getElementById('logo-pos-hint').style.display = 'none';
     btn.classList.add('active');
     state.logoPosition = btn.dataset.pos;
+    state.logoCustomXY = null;
     if (state.img && state.logoEnabled) render();
   });
 });
+
+// Custom position button
+const logoCustomBtn = document.getElementById('logo-custom-btn');
+const logoPosHint = document.getElementById('logo-pos-hint');
+logoCustomBtn.addEventListener('click', () => {
+  logoEl.positionBtns.forEach(b => b.classList.remove('active'));
+  logoCustomBtn.classList.add('active');
+  logoPosHint.style.display = 'block';
+  state.logoPosition = 'custom';
+  // initialize custom position from current preset (so logo doesn't jump)
+  if (!state.logoCustomXY) {
+    state.logoCustomXY = computeCustomFromPos(state.logoPosition);
+  }
+  if (state.img && state.logoEnabled) render();
+});
+
+function computeCustomFromPos(pos) {
+  // returns {x, y} fractional center (0..1) for given preset position
+  // use last known preset if pos === 'custom'
+  if (pos === 'custom') pos = 'tl';
+  let xf, yf;
+  if (pos[1] === 'l') xf = state.logoPadding + state.logoSize / 2;
+  else if (pos[1] === 'c') xf = 0.5;
+  else xf = 1 - state.logoPadding - state.logoSize / 2;
+  // for y we need aspect ratio; approximate with size only
+  if (pos[0] === 't') yf = state.logoPadding + state.logoSize / 4;
+  else if (pos[0] === 'm') yf = 0.5;
+  else yf = 1 - state.logoPadding - state.logoSize / 4;
+  return { x: xf, y: yf };
+}
 
 // Size slider
 logoEl.sizeRange.addEventListener('input', e => {
@@ -3759,23 +3837,46 @@ function drawLogoOverlay(ctx, W, H) {
   // determine position
   const pos = state.logoPosition;
   let x, y;
-  if (pos[0] === 't') y = pad;
-  else if (pos[0] === 'm') y = (H - logoH) / 2;
-  else y = H - logoH - pad;
 
-  if (pos[1] === 'l') x = pad;
-  else if (pos[1] === 'c') x = (W - logoW) / 2;
-  else x = W - logoW - pad;
+  if (pos === 'custom' && state.logoCustomXY) {
+    // custom: logoCustomXY is fractional center position (0..1) of logo center
+    x = state.logoCustomXY.x * W - logoW / 2;
+    y = state.logoCustomXY.y * H - logoH / 2;
+    // clamp to canvas (allow logo to touch edges, no padding)
+    x = Math.max(0, Math.min(W - logoW, x));
+    y = Math.max(0, Math.min(H - logoH, y));
+  } else {
+    if (pos[0] === 't') y = pad;
+    else if (pos[0] === 'm') y = (H - logoH) / 2;
+    else y = H - logoH - pad;
+
+    if (pos[1] === 'l') x = pad;
+    else if (pos[1] === 'c') x = (W - logoW) / 2;
+    else x = W - logoW - pad;
+  }
 
   // ===== gradient overlay (drawn BEFORE logo) =====
   if (state.logoGradient) {
-    drawLogoGradient(ctx, W, H, pos);
+    drawLogoGradient(ctx, W, H, pos === 'custom' ? deriveAnchorFromXY(x + logoW/2, y + logoH/2, W, H) : pos);
   }
 
   // ===== logo itself =====
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(logo, x, y, logoW, logoH);
+}
+
+// derive 2-char anchor (e.g. 'tl', 'mc') from a center point — used to pick gradient direction
+function deriveAnchorFromXY(cx, cy, W, H) {
+  let v;
+  if (cy < H * 0.33) v = 't';
+  else if (cy < H * 0.67) v = 'm';
+  else v = 'b';
+  let h;
+  if (cx < W * 0.33) h = 'l';
+  else if (cx < W * 0.67) h = 'c';
+  else h = 'r';
+  return v + h;
 }
 
 function drawLogoGradient(ctx, W, H, pos) {
@@ -3840,32 +3941,34 @@ function renderLogoOnEditors() {
   // hide both first
   placeOverlay.classList.add('hidden');
   cropOverlay.classList.add('hidden');
+  // remove draggable class
+  placeOverlay.classList.remove('draggable');
+  cropOverlay.classList.remove('draggable');
 
   if (!state.logoEnabled || !state.logoImg) return;
 
   const inCropEditor = (state.fitMode === 'crop' &&
                         (state.cropMode === 'focal' || state.cropMode === 'manual'));
   const inPlaceEditor = (state.fitMode === 'letterbox' || state.fitMode === 'blur');
+  const isCustom = state.logoPosition === 'custom';
 
   if (inPlaceEditor) {
-    // wait for place-frame to have a real size
     requestAnimationFrame(() => {
       const frame = document.getElementById('place-frame');
       const rect = frame.getBoundingClientRect();
       if (rect.width === 0) return;
       drawLogoToOverlay(placeOverlay, rect.width, rect.height);
       placeOverlay.classList.remove('hidden');
+      if (isCustom) placeOverlay.classList.add('draggable');
     });
   } else if (inCropEditor) {
-    // overlay on crop stage — sized to crop image display
     requestAnimationFrame(() => {
       const cropImg = document.getElementById('crop-img');
       const rect = cropImg.getBoundingClientRect();
       if (rect.width === 0) return;
-      // logo position depends on the CROP rect (not the full image)
-      // draw logo as if the cropped area = full output canvas
       drawLogoToOverlayWithCropMapping(cropOverlay, rect.width, rect.height);
       cropOverlay.classList.remove('hidden');
+      if (isCustom) cropOverlay.classList.add('draggable');
     });
   }
 }
@@ -3905,6 +4008,110 @@ function drawLogoToOverlayWithCropMapping(canvas, dispW, dispH) {
   drawLogoOverlay(ctx, cropDispW, cropDispH);
   ctx.restore();
 }
+
+// ===== LOGO DRAG (custom position) =====
+let logoDrag = null; // {overlay, startX, startY, startCustomXY, isCrop}
+
+function startLogoDrag(overlay, clientX, clientY, isCrop) {
+  logoDrag = {
+    overlay,
+    startX: clientX,
+    startY: clientY,
+    startCustomXY: state.logoCustomXY ? { ...state.logoCustomXY } : { x: 0.5, y: 0.5 },
+    isCrop,
+  };
+  overlay.classList.add('dragging');
+}
+
+function moveLogoDrag(clientX, clientY) {
+  if (!logoDrag) return;
+  const overlay = logoDrag.overlay;
+  const rect = overlay.getBoundingClientRect();
+  if (rect.width === 0) return;
+
+  const dx = (clientX - logoDrag.startX) / rect.width;
+  const dy = (clientY - logoDrag.startY) / rect.height;
+
+  let newX, newY;
+  if (logoDrag.isCrop) {
+    // crop mode: dx/dy are in display space, but logo coords are in CROP rect space
+    // crop rect display size = cropDispW (which is < rect.width)
+    if (state.cropRect && state.img) {
+      const iw = state.img.naturalWidth;
+      const ih = state.img.naturalHeight;
+      const scale = rect.width / iw;
+      const cropDispW = state.cropRect.w * scale;
+      const cropDispH = state.cropRect.h * scale;
+      // adjust dx/dy to crop rect space
+      const dxCrop = (clientX - logoDrag.startX) / cropDispW;
+      const dyCrop = (clientY - logoDrag.startY) / cropDispH;
+      newX = logoDrag.startCustomXY.x + dxCrop;
+      newY = logoDrag.startCustomXY.y + dyCrop;
+    } else {
+      newX = logoDrag.startCustomXY.x + dx;
+      newY = logoDrag.startCustomXY.y + dy;
+    }
+  } else {
+    newX = logoDrag.startCustomXY.x + dx;
+    newY = logoDrag.startCustomXY.y + dy;
+  }
+
+  // clamp center within bounds (allow logo center to go anywhere from edge of logo to edge)
+  const halfW = state.logoSize / 2;
+  // approximate halfH (since aspect varies)
+  const aspect = state.logoImg ? state.logoImg.naturalWidth / state.logoImg.naturalHeight : 1;
+  const [W, H] = state.outSize;
+  const halfH = (state.logoSize * W / aspect) / H / 2;
+
+  newX = Math.max(halfW, Math.min(1 - halfW, newX));
+  newY = Math.max(halfH, Math.min(1 - halfH, newY));
+
+  state.logoCustomXY = { x: newX, y: newY };
+  // re-render only logo overlay (don't trigger full render — fast)
+  if (logoDrag.isCrop) {
+    drawLogoToOverlayWithCropMapping(logoDrag.overlay, logoDrag.overlay.width, logoDrag.overlay.height);
+  } else {
+    drawLogoToOverlay(logoDrag.overlay, logoDrag.overlay.width, logoDrag.overlay.height);
+  }
+}
+
+function endLogoDrag() {
+  if (!logoDrag) return;
+  logoDrag.overlay.classList.remove('dragging');
+  logoDrag = null;
+  // trigger full render to update encoding stats
+  if (state.img) render();
+}
+
+// attach drag listeners to both overlays
+['place-logo-overlay', 'crop-logo-overlay'].forEach(id => {
+  const overlay = document.getElementById(id);
+  const isCrop = id === 'crop-logo-overlay';
+
+  overlay.addEventListener('mousedown', e => {
+    if (state.logoPosition !== 'custom') return;
+    e.preventDefault();
+    startLogoDrag(overlay, e.clientX, e.clientY, isCrop);
+  });
+  overlay.addEventListener('touchstart', e => {
+    if (state.logoPosition !== 'custom') return;
+    const t = e.touches[0];
+    startLogoDrag(overlay, t.clientX, t.clientY, isCrop);
+    e.preventDefault();
+  }, { passive: false });
+});
+
+window.addEventListener('mousemove', e => {
+  if (logoDrag) moveLogoDrag(e.clientX, e.clientY);
+});
+window.addEventListener('touchmove', e => {
+  if (logoDrag && e.touches[0]) {
+    moveLogoDrag(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+  }
+}, { passive: false });
+window.addEventListener('mouseup', endLogoDrag);
+window.addEventListener('touchend', endLogoDrag);
 
 // ============ DOWNLOAD ============
 el.downloadBtn.addEventListener('click', () => {
