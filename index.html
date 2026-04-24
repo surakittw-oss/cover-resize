@@ -3256,15 +3256,17 @@ async function render(updateOverlay = true) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, p.x, p.y, p.w, p.h);
-
-    if (inPlaceEditor && updateOverlay) {
-      setupPlaceEditor(canvas);
-    }
   }
 
   // ===== LOGO OVERLAY =====
+  // (drawn before preview/place editor renders, so logo shows in preview)
   if (state.logoEnabled && state.logoImg) {
     drawLogoOverlay(ctx, canvas.width, canvas.height);
+  }
+
+  // setup place editor preview AFTER logo applied
+  if (inPlaceEditor && updateOverlay) {
+    setupPlaceEditor(canvas);
   }
 
   // encode
