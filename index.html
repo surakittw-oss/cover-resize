@@ -25,6 +25,7 @@
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
@@ -1475,7 +1476,91 @@
     cursor: grabbing;
   }
 
-  /* CONVERT specific styles */
+  /* PDF specific styles */
+  .pdf-toolbar {
+    grid-template-columns: 200px 220px 200px auto !important;
+  }
+  @media (max-width: 1100px) {
+    .pdf-toolbar {
+      grid-template-columns: 1fr 1fr !important;
+    }
+  }
+  @media (max-width: 600px) {
+    .pdf-toolbar {
+      grid-template-columns: 1fr !important;
+    }
+  }
+  .pdf-toolbar select.num-input {
+    width: 100%;
+  }
+  .pdf-toolbar #pdf-custom-row .num-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pdf-grid .batch-card {
+    cursor: grab;
+    position: relative;
+  }
+  .pdf-grid .batch-card:active {
+    cursor: grabbing;
+  }
+  .pdf-grid .batch-card.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+  .pdf-grid .batch-card.drag-over {
+    box-shadow: 0 0 0 2px var(--ink);
+  }
+  .pdf-page-num {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 980px;
+    z-index: 3;
+    letter-spacing: 0.02em;
+  }
+  .pdf-rotate-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    z-index: 3;
+  }
+  .pdf-rotate-btn:hover {
+    background: var(--ink);
+    transform: rotate(90deg);
+  }
+  .pdf-rotate-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .pdf-grid .batch-card-thumb {
+    cursor: grab;
+  }
+  .pdf-grid .batch-card-thumb:active {
+    cursor: grabbing;
+  }
+  .pdf-grid .batch-card-thumb::before,
+  .pdf-grid .batch-card-thumb::after {
+    display: none !important;
+  }
   .convert-toolbar {
     grid-template-columns: 200px 1fr 200px auto !important;
   }
@@ -1799,6 +1884,10 @@
     <button class="tab" data-view="convert">
       <span class="tab-name">Convert</span>
       <span class="tab-desc">เปลี่ยนนามสกุลไฟล์ · JPG / PNG / WebP / AVIF</span>
+    </button>
+    <button class="tab" data-view="pdf">
+      <span class="tab-name">PDF</span>
+      <span class="tab-desc">รวมรูปเป็น PDF หลายหน้า</span>
     </button>
   </div>
 </div>
@@ -2410,6 +2499,145 @@
 
   </div>
 </div><!-- /view-convert -->
+
+<!-- ============ PDF VIEW ============ -->
+<div class="view view-pdf hidden" id="view-pdf">
+
+  <!-- PDF hero (initial) -->
+  <section class="hero" id="pdf-hero">
+    <h1>
+      รวมรูปเป็น PDF<br>
+      <span class="light">หลายหน้าในไฟล์เดียว</span>
+    </h1>
+    <p class="hero-sub">
+      ลากรูปลงไป รูปแต่ละไฟล์จะกลายเป็น 1 หน้าใน PDF<br>เลือกขนาดหน้ากระดาษและเรียงลำดับได้
+    </p>
+
+    <div class="dropzone" id="pdf-dropzone">
+      <input type="file" id="pdf-file-input" accept="image/*" multiple>
+      <div class="dropzone-icon">+</div>
+      <div class="dropzone-title">วางหลายภาพพร้อมกัน หรือคลิกเพื่อเลือก</div>
+      <div class="dropzone-sub">JPG · PNG · WebP · เลือกได้หลายไฟล์</div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div class="feature-title">1 รูป = 1 หน้า PDF</div>
+        <div class="feature-desc">รูปแต่ละไฟล์กลายเป็นหนึ่งหน้าใน PDF ตามลำดับที่จัด</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 21V9"/>
+          </svg>
+        </div>
+        <div class="feature-title">เลือกขนาดหน้าได้</div>
+        <div class="feature-desc">Auto fit / A4 / A3 / Letter / Custom พร้อมหมุน Portrait / Landscape</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="9" x2="20" y2="9"/>
+            <line x1="4" y1="15" x2="20" y2="15"/>
+            <polyline points="10 5 4 9 10 13"/>
+            <polyline points="14 19 20 15 14 11"/>
+          </svg>
+        </div>
+        <div class="feature-title">ลากเรียงลำดับได้</div>
+        <div class="feature-desc">ลากการ์ดในแกลเลอรีเพื่อจัดลำดับหน้าตามต้องการ</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.71 2.24"/>
+            <polyline points="21 3 21 9 15 9"/>
+          </svg>
+        </div>
+        <div class="feature-title">หมุนรูปได้</div>
+        <div class="feature-desc">หมุนแต่ละรูปได้อิสระก่อน export เป็น PDF</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PDF workspace (after upload) -->
+  <div class="batch-workspace hidden" id="pdf-workspace">
+
+    <!-- Settings bar -->
+    <div class="batch-toolbar pdf-toolbar">
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">ขนาดหน้า</div>
+        <select class="num-input" id="pdf-page-size">
+          <option value="auto" selected>Auto fit (ตามรูป)</option>
+          <option value="a4">A4 (210 × 297 mm)</option>
+          <option value="a3">A3 (297 × 420 mm)</option>
+          <option value="letter">Letter (8.5 × 11 in)</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <div class="num-row hidden" id="pdf-custom-row" style="margin-top:6px;">
+          <input type="number" class="num-input" id="pdf-custom-w" value="210" placeholder="กว้าง mm" min="10">
+          <input type="number" class="num-input" id="pdf-custom-h" value="297" placeholder="สูง mm" min="10">
+        </div>
+      </div>
+
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">แนวกระดาษ</div>
+        <div class="seg seg-3" id="pdf-orientation-seg">
+          <button class="active" data-ori="auto">Auto</button>
+          <button data-ori="portrait">แนวตั้ง</button>
+          <button data-ori="landscape">แนวนอน</button>
+        </div>
+      </div>
+
+      <div class="batch-tool-group">
+        <div class="batch-tool-label">
+          ระยะขอบ (margin)
+          <span class="val" id="pdf-margin-num">0 mm</span>
+        </div>
+        <input type="range" id="pdf-margin-range" min="0" max="30" value="0" step="1">
+        <div class="hint" style="margin-top:4px;">เฉพาะ A4/A3/Letter/Custom (Auto fit ไม่มีขอบ)</div>
+      </div>
+
+      <div class="batch-actions">
+        <button class="btn-secondary" id="pdf-add-more">+ เพิ่มภาพ</button>
+        <button class="btn-primary" id="pdf-generate" disabled>
+          <span id="pdf-generate-label">สร้าง PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="batch-summary" id="pdf-summary">
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">จำนวนหน้า</div>
+        <div class="batch-summary-value" id="pdf-count">0</div>
+      </div>
+      <div class="batch-summary-item">
+        <div class="batch-summary-label">ขนาดรวมรูป</div>
+        <div class="batch-summary-value" id="pdf-total-size">—</div>
+      </div>
+      <div class="batch-summary-item" style="grid-column:span 2;">
+        <div class="batch-summary-label">เคล็ดลับ</div>
+        <div class="batch-summary-value" style="font-size:13px;font-weight:300;color:var(--text-3);">
+          ลากการ์ดเพื่อจัดลำดับหน้า · กดที่ ↻ เพื่อหมุนรูป
+        </div>
+      </div>
+    </div>
+
+    <!-- Image grid -->
+    <div class="batch-grid pdf-grid" id="pdf-grid"></div>
+
+  </div>
+</div><!-- /view-pdf -->
 
 </div><!-- /app-container -->
 
@@ -4133,6 +4361,7 @@ const tabButtons = document.querySelectorAll('.tab');
 const viewCover = document.getElementById('view-cover');
 const viewBatch = document.getElementById('view-batch');
 const viewConvert = document.getElementById('view-convert');
+const viewPdf = document.getElementById('view-pdf');
 
 tabButtons.forEach(btn => {
   btn.addEventListener('click', () => {
@@ -4142,9 +4371,11 @@ tabButtons.forEach(btn => {
     viewCover.classList.add('hidden');
     viewBatch.classList.add('hidden');
     viewConvert.classList.add('hidden');
+    viewPdf.classList.add('hidden');
     if (view === 'cover') viewCover.classList.remove('hidden');
     else if (view === 'batch') viewBatch.classList.remove('hidden');
     else if (view === 'convert') viewConvert.classList.remove('hidden');
+    else if (view === 'pdf') viewPdf.classList.remove('hidden');
   });
 });
 
@@ -5482,6 +5713,443 @@ cel.downloadAll.addEventListener('click', async () => {
   }
 });
 
+// ============================================================
+// ============ PDF TOOL ============
+// ============================================================
+const pdfState = {
+  items: [],          // [{id, file, img, origSize, dataUrl, rotation}]
+  pageSize: 'auto',   // 'auto' | 'a4' | 'a3' | 'letter' | 'custom'
+  customW: 210,       // mm
+  customH: 297,       // mm
+  orientation: 'auto', // 'auto' | 'portrait' | 'landscape'
+  margin: 0,          // mm
+  nextId: 1,
+};
+
+// page sizes in mm (portrait dimensions)
+const PAGE_SIZES_MM = {
+  a4: [210, 297],
+  a3: [297, 420],
+  letter: [215.9, 279.4],
+};
+
+const pel = {
+  hero: document.getElementById('pdf-hero'),
+  workspace: document.getElementById('pdf-workspace'),
+  dropzone: document.getElementById('pdf-dropzone'),
+  fileInput: document.getElementById('pdf-file-input'),
+  pageSize: document.getElementById('pdf-page-size'),
+  customRow: document.getElementById('pdf-custom-row'),
+  customW: document.getElementById('pdf-custom-w'),
+  customH: document.getElementById('pdf-custom-h'),
+  orientationSeg: document.querySelectorAll('#pdf-orientation-seg button'),
+  marginRange: document.getElementById('pdf-margin-range'),
+  marginNum: document.getElementById('pdf-margin-num'),
+  addMore: document.getElementById('pdf-add-more'),
+  generate: document.getElementById('pdf-generate'),
+  generateLabel: document.getElementById('pdf-generate-label'),
+  grid: document.getElementById('pdf-grid'),
+  count: document.getElementById('pdf-count'),
+  totalSize: document.getElementById('pdf-total-size'),
+};
+
+// ----- File handling -----
+pel.dropzone.addEventListener('click', () => pel.fileInput.click());
+pel.fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handlePdfFiles(e.target.files);
+  pel.fileInput.value = '';
+});
+['dragover','dragenter'].forEach(evt => {
+  pel.dropzone.addEventListener(evt, e => { e.preventDefault(); pel.dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  pel.dropzone.addEventListener(evt, e => { e.preventDefault(); pel.dropzone.classList.remove('drag'); });
+});
+pel.dropzone.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) handlePdfFiles(e.dataTransfer.files);
+});
+
+pel.addMore.addEventListener('click', () => pel.fileInput.click());
+
+async function handlePdfFiles(files) {
+  const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!imgFiles.length) { alert('ไม่พบไฟล์รูปภาพ'); return; }
+
+  pel.hero.classList.add('hidden');
+  pel.workspace.classList.remove('hidden');
+
+  const loadPromises = imgFiles.map(file => loadPdfFile(file));
+  const loaded = await Promise.all(loadPromises);
+
+  for (const item of loaded) {
+    if (item) pdfState.items.push(item);
+  }
+  renderPdfGrid();
+  updatePdfSummary();
+  pel.generate.disabled = pdfState.items.length === 0;
+}
+
+function loadPdfFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          id: pdfState.nextId++,
+          file,
+          img,
+          origSize: file.size,
+          dataUrl: e.target.result,
+          rotation: 0,    // 0, 90, 180, 270
+        });
+      };
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ----- Grid render with drag-to-reorder -----
+function renderPdfGrid() {
+  pel.grid.innerHTML = '';
+  pdfState.items.forEach((item, idx) => {
+    pel.grid.appendChild(createPdfCard(item, idx + 1));
+  });
+}
+
+function createPdfCard(item, pageNum) {
+  const card = document.createElement('div');
+  card.className = 'batch-card';
+  card.dataset.id = item.id;
+  card.draggable = true;
+
+  // page number badge
+  const pageBadge = document.createElement('div');
+  pageBadge.className = 'pdf-page-num';
+  pageBadge.textContent = pageNum;
+  card.appendChild(pageBadge);
+
+  // rotate button
+  const rotateBtn = document.createElement('button');
+  rotateBtn.className = 'pdf-rotate-btn';
+  rotateBtn.title = 'หมุน 90°';
+  rotateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.71 2.24"/><polyline points="21 3 21 9 15 9"/></svg>';
+  rotateBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    item.rotation = (item.rotation + 90) % 360;
+    updateThumbRotation(item);
+  });
+  card.appendChild(rotateBtn);
+
+  // thumb
+  const thumb = document.createElement('div');
+  thumb.className = 'batch-card-thumb';
+  const tImg = document.createElement('img');
+  tImg.src = item.dataUrl;
+  tImg.style.transform = `rotate(${item.rotation}deg)`;
+  tImg.style.transition = 'transform 0.3s';
+  thumb.appendChild(tImg);
+
+  // info
+  const info = document.createElement('div');
+  info.className = 'batch-card-info';
+  const name = document.createElement('div');
+  name.className = 'batch-card-name';
+  name.textContent = item.file.name;
+  info.appendChild(name);
+
+  const stats = document.createElement('div');
+  stats.className = 'batch-card-stats';
+  stats.innerHTML = `<span>${item.img.naturalWidth} × ${item.img.naturalHeight}</span>
+    <span>${fmtBytes(item.origSize)}</span>`;
+  info.appendChild(stats);
+
+  // actions
+  const actions = document.createElement('div');
+  actions.className = 'batch-card-actions';
+
+  const moveLeftBtn = document.createElement('button');
+  moveLeftBtn.className = 'batch-card-btn';
+  moveLeftBtn.textContent = '← ก่อนหน้า';
+  moveLeftBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    movePdfItem(item.id, -1);
+  });
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'batch-card-btn danger';
+  removeBtn.textContent = 'ลบ';
+  removeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    removePdfItem(item.id);
+  });
+
+  const moveRightBtn = document.createElement('button');
+  moveRightBtn.className = 'batch-card-btn';
+  moveRightBtn.textContent = 'ถัดไป →';
+  moveRightBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    movePdfItem(item.id, 1);
+  });
+
+  actions.appendChild(moveLeftBtn);
+  actions.appendChild(removeBtn);
+  actions.appendChild(moveRightBtn);
+
+  card.appendChild(thumb);
+  card.appendChild(info);
+  card.appendChild(actions);
+
+  // drag-to-reorder handlers
+  card.addEventListener('dragstart', e => {
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.id);
+  });
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    document.querySelectorAll('.pdf-grid .batch-card').forEach(c => {
+      c.classList.remove('drag-over');
+    });
+  });
+  card.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!card.classList.contains('dragging')) {
+      card.classList.add('drag-over');
+    }
+  });
+  card.addEventListener('dragleave', () => {
+    card.classList.remove('drag-over');
+  });
+  card.addEventListener('drop', e => {
+    e.preventDefault();
+    card.classList.remove('drag-over');
+    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
+    if (draggedId === item.id) return;
+    reorderPdfItems(draggedId, item.id);
+  });
+
+  return card;
+}
+
+function updateThumbRotation(item) {
+  const card = pel.grid.querySelector(`[data-id="${item.id}"]`);
+  if (!card) return;
+  const img = card.querySelector('.batch-card-thumb img');
+  if (img) img.style.transform = `rotate(${item.rotation}deg)`;
+}
+
+function movePdfItem(id, direction) {
+  const idx = pdfState.items.findIndex(it => it.id === id);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= pdfState.items.length) return;
+  const [moved] = pdfState.items.splice(idx, 1);
+  pdfState.items.splice(newIdx, 0, moved);
+  renderPdfGrid();
+}
+
+function reorderPdfItems(draggedId, targetId) {
+  const draggedIdx = pdfState.items.findIndex(it => it.id === draggedId);
+  const targetIdx = pdfState.items.findIndex(it => it.id === targetId);
+  if (draggedIdx < 0 || targetIdx < 0) return;
+  const [moved] = pdfState.items.splice(draggedIdx, 1);
+  pdfState.items.splice(targetIdx, 0, moved);
+  renderPdfGrid();
+}
+
+function removePdfItem(id) {
+  pdfState.items = pdfState.items.filter(it => it.id !== id);
+  renderPdfGrid();
+  updatePdfSummary();
+  pel.generate.disabled = pdfState.items.length === 0;
+  if (pdfState.items.length === 0) {
+    pel.workspace.classList.add('hidden');
+    pel.hero.classList.remove('hidden');
+  }
+}
+
+function updatePdfSummary() {
+  pel.count.textContent = pdfState.items.length;
+  const total = pdfState.items.reduce((s, it) => s + it.origSize, 0);
+  pel.totalSize.textContent = total > 0 ? fmtBytes(total) : '—';
+}
+
+// ----- Settings -----
+pel.pageSize.addEventListener('change', e => {
+  pdfState.pageSize = e.target.value;
+  pel.customRow.classList.toggle('hidden', e.target.value !== 'custom');
+});
+
+pel.customW.addEventListener('change', e => {
+  pdfState.customW = parseInt(e.target.value) || 210;
+});
+pel.customH.addEventListener('change', e => {
+  pdfState.customH = parseInt(e.target.value) || 297;
+});
+
+pel.orientationSeg.forEach(btn => {
+  btn.addEventListener('click', () => {
+    pel.orientationSeg.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    pdfState.orientation = btn.dataset.ori;
+  });
+});
+
+pel.marginRange.addEventListener('input', e => {
+  pdfState.margin = parseInt(e.target.value);
+  pel.marginNum.textContent = pdfState.margin + ' mm';
+});
+
+// ----- Generate PDF -----
+pel.generate.addEventListener('click', async () => {
+  if (!pdfState.items.length) return;
+  if (typeof window.jspdf === 'undefined') {
+    alert('jsPDF ยังโหลดไม่เสร็จ ลองรีเฟรชหน้าเว็บ');
+    return;
+  }
+
+  pel.generate.disabled = true;
+  pel.generateLabel.textContent = 'กำลังสร้าง PDF…';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+
+    for (let i = 0; i < pdfState.items.length; i++) {
+      const item = pdfState.items[i];
+      pel.generateLabel.textContent = `กำลังสร้าง PDF… (${i + 1}/${pdfState.items.length})`;
+
+      // get rotated image as canvas + dataURL
+      const { canvas, w: imgW, h: imgH } = renderRotatedImage(item);
+
+      // determine page size in mm
+      const pageDims = computePageDims(imgW, imgH);
+      const [pageW, pageH] = pageDims; // mm
+
+      if (i === 0) {
+        pdf = new jsPDF({
+          orientation: pageW > pageH ? 'landscape' : 'portrait',
+          unit: 'mm',
+          format: [pageW, pageH],
+          compress: true,
+        });
+      } else {
+        pdf.addPage([pageW, pageH], pageW > pageH ? 'landscape' : 'portrait');
+      }
+
+      // compute image placement on page (with margin)
+      const margin = pdfState.pageSize === 'auto' ? 0 : pdfState.margin;
+      const availW = pageW - margin * 2;
+      const availH = pageH - margin * 2;
+      const imgAspect = imgW / imgH;
+      const pageAspect = availW / availH;
+      let drawW, drawH;
+      if (imgAspect > pageAspect) {
+        drawW = availW;
+        drawH = availW / imgAspect;
+      } else {
+        drawH = availH;
+        drawW = availH * imgAspect;
+      }
+      const x = (pageW - drawW) / 2;
+      const y = (pageH - drawH) / 2;
+
+      // export rotated canvas to JPEG (smaller PDF)
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      pdf.addImage(imgData, 'JPEG', x, y, drawW, drawH, undefined, 'FAST');
+    }
+
+    // download
+    const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    pdf.save(`images_${ts}.pdf`);
+
+    pel.generateLabel.textContent = '✓ สร้าง PDF เสร็จ';
+    setTimeout(() => {
+      pel.generateLabel.textContent = 'สร้าง PDF';
+      pel.generate.disabled = false;
+    }, 1500);
+  } catch (err) {
+    alert('สร้าง PDF ไม่สำเร็จ: ' + err.message);
+    pel.generateLabel.textContent = 'สร้าง PDF';
+    pel.generate.disabled = false;
+  }
+});
+
+function renderRotatedImage(item) {
+  const img = item.img;
+  const rot = item.rotation;
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+
+  let w, h;
+  if (rot === 90 || rot === 270) {
+    w = ih; h = iw;
+  } else {
+    w = iw; h = ih;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // white background (in case of transparency)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate((rot * Math.PI) / 180);
+  ctx.drawImage(img, -iw / 2, -ih / 2);
+
+  return { canvas, w, h };
+}
+
+function computePageDims(imgW, imgH) {
+  // returns [pageW, pageH] in mm
+  if (pdfState.pageSize === 'auto') {
+    // 1 px = 0.264583 mm (96 dpi convention, but we use a fixed conversion)
+    // we want page to match image proportion exactly — use a reasonable max
+    // limit max dimension to 1000mm to avoid huge PDFs
+    const maxMm = 1000;
+    const px2mm = 0.264583;
+    let pW = imgW * px2mm;
+    let pH = imgH * px2mm;
+    // scale down if too large
+    const maxDim = Math.max(pW, pH);
+    if (maxDim > maxMm) {
+      const scale = maxMm / maxDim;
+      pW *= scale; pH *= scale;
+    }
+    return [pW, pH];
+  }
+
+  let baseDims;
+  if (pdfState.pageSize === 'custom') {
+    baseDims = [pdfState.customW, pdfState.customH];
+  } else {
+    baseDims = PAGE_SIZES_MM[pdfState.pageSize];
+  }
+
+  // determine orientation
+  let [w, h] = baseDims; // base = portrait
+  const imgIsLandscape = imgW > imgH;
+
+  if (pdfState.orientation === 'landscape') {
+    return [h, w]; // swap to landscape
+  } else if (pdfState.orientation === 'portrait') {
+    return [w, h];
+  } else {
+    // auto: match image
+    return imgIsLandscape ? [h, w] : [w, h];
+  }
+}
 </script>
 </body>
 </html>
