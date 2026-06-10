@@ -5375,37 +5375,133 @@ function loadConvertFile(file) {
   return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        resolve({
-          id: convertState.nextId++,
-          file,
-          img,
-          origSize: file.size,
-          origFormat: detectOrigFormat(file),
-          dataUrl: e.target.result,
-          blob: null,
-          blobSize: 0,
-          status: 'pending',
-        });
-      };
-      img.onerror = () => {
-        // can't load (e.g. unsupported AVIF in old browser, HEIC, TIFF)
-        console.warn('Failed to load image:', file.name);
-        resolve({
-          id: convertState.nextId++,
-          file,
-          img: null,
-          origSize: file.size,
-          origFormat: detectOrigFormat(file),
-          dataUrl: null,
-          blob: null,
-          blobSize: 0,
-          status: 'error',
-          error: 'Browser อ่านไฟล์ format นี้ไม่ได้',
-        });
-      };
-      img.src = e.target.result;
+      const isSvg = detectOrigFormat(file) === 'svg';
+
+      if (isSvg) {
+        // SVG special handling: parse dimensions from viewBox / width / height
+        // then render to offscreen canvas at proper resolution
+        const svgText = e.target.result; // readAsText below handles this
+
+        // parse SVG to get true dimensions
+        const parser = new DOMParser();
+        const svgText2 = atob(e.target.result.split(',')[1]);
+        const doc = parser.parseFromString(svgText2, 'image/svg+xml');
+        const svgEl = doc.querySelector('svg');
+
+        let svgW = 0, svgH = 0;
+        if (svgEl) {
+          // try width/height attributes first
+          const wa = svgEl.getAttribute('width');
+          const ha = svgEl.getAttribute('height');
+          if (wa && ha && !wa.includes('%') && !ha.includes('%')) {
+            svgW = parseFloat(wa);
+            svgH = parseFloat(ha);
+          }
+          // fallback to viewBox
+          if (!svgW || !svgH) {
+            const vb = svgEl.getAttribute('viewBox');
+            if (vb) {
+              const parts = vb.trim().split(/[\s,]+/);
+              if (parts.length === 4) {
+                svgW = parseFloat(parts[2]);
+                svgH = parseFloat(parts[3]);
+              }
+            }
+          }
+        }
+
+        // if still unknown, default to 800px wide (reasonable fallback)
+        if (!svgW || !svgH) { svgW = 800; svgH = 600; }
+
+        // render SVG at 2x resolution for crispness
+        const scale = Math.min(4, Math.max(1, 2000 / Math.max(svgW, svgH)));
+        const renderW = Math.round(svgW * scale);
+        const renderH = Math.round(svgH * scale);
+
+        // draw SVG onto canvas via <img>
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = renderW;
+          canvas.height = renderH;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, renderW, renderH);
+
+          // save rendered canvas as dataUrl (PNG) for thumbnail
+          const thumbDataUrl = canvas.toDataURL('image/png', 0.8);
+
+          // create a virtual img with the rendered canvas dimensions
+          const renderedImg = new Image();
+          renderedImg.onload = () => {
+            resolve({
+              id: convertState.nextId++,
+              file,
+              img: renderedImg,
+              origSize: file.size,
+              origFormat: 'svg',
+              dataUrl: thumbDataUrl,     // use rendered version for preview
+              svgDataUrl: e.target.result, // keep original SVG data URL
+              blob: null,
+              blobSize: 0,
+              status: 'pending',
+            });
+          };
+          renderedImg.src = thumbDataUrl;
+        };
+        img.onerror = () => {
+          resolve({
+            id: convertState.nextId++,
+            file,
+            img: null,
+            origSize: file.size,
+            origFormat: 'svg',
+            dataUrl: null,
+            blob: null,
+            blobSize: 0,
+            status: 'error',
+            error: 'Browser อ่าน SVG นี้ไม่ได้',
+          });
+        };
+        // set explicit dimensions on SVG before rendering
+        img.width = renderW;
+        img.height = renderH;
+        img.src = e.target.result;
+
+      } else {
+        // normal raster image
+        const img = new Image();
+        img.onload = () => {
+          resolve({
+            id: convertState.nextId++,
+            file,
+            img,
+            origSize: file.size,
+            origFormat: detectOrigFormat(file),
+            dataUrl: e.target.result,
+            blob: null,
+            blobSize: 0,
+            status: 'pending',
+          });
+        };
+        img.onerror = () => {
+          console.warn('Failed to load image:', file.name);
+          resolve({
+            id: convertState.nextId++,
+            file,
+            img: null,
+            origSize: file.size,
+            origFormat: detectOrigFormat(file),
+            dataUrl: null,
+            blob: null,
+            blobSize: 0,
+            status: 'error',
+            error: 'Browser อ่านไฟล์ format นี้ไม่ได้',
+          });
+        };
+        img.src = e.target.result;
+      }
     };
     reader.onerror = () => resolve(null);
     reader.readAsDataURL(file);
