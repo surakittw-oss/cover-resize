@@ -7,7 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Image Tool</title>
-  <!-- Favicon (inline SVG, no external file needed) -->
+
+<!-- Favicon (inline SVG, no external file needed) -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23e62227'/><rect x='14' y='16' width='36' height='32' rx='3' fill='none' stroke='white' stroke-width='3'/><circle cx='23' cy='25' r='3' fill='white'/><path d='M14 41 L25 31 L33 38 L42 28 L50 36 L50 45 Q50 48 47 48 L17 48 Q14 48 14 45 Z' fill='white'/></svg>">
 
 <!-- Apple touch icon (for iOS bookmark) -->
@@ -1301,6 +1302,7 @@
   .seg-2 { grid-template-columns: 1fr 1fr; }
   .seg-3 { grid-template-columns: 1fr 1fr 1fr; }
   .seg-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .seg-5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
 
   /* LOGO CONTROLS */
   .logo-controls {
@@ -2322,7 +2324,7 @@
           ขนาดเป้าหมาย
           <span class="val" id="batch-target-num">200 KB</span>
         </div>
-        <input type="range" id="batch-target-range" min="50" max="800" value="200" step="10">
+        <input type="range" id="batch-target-range" min="20" max="800" value="200" step="5">
         <label class="sharpen-toggle">
           <input type="checkbox" id="batch-sharpen" checked>
           <span class="sharpen-box"></span>
@@ -2378,10 +2380,10 @@
     </p>
 
     <div class="dropzone" id="convert-dropzone">
-      <input type="file" id="convert-file-input" accept="image/*" multiple>
+      <input type="file" id="convert-file-input" accept="image/*,.svg" multiple>
       <div class="dropzone-icon">+</div>
       <div class="dropzone-title">วางหลายภาพพร้อมกัน หรือคลิกเพื่อเลือก</div>
-      <div class="dropzone-sub">JPG · PNG · WebP · GIF · BMP · AVIF · เลือกได้หลายไฟล์</div>
+      <div class="dropzone-sub">JPG · PNG · WebP · GIF · BMP · AVIF · SVG · เลือกได้หลายไฟล์</div>
     </div>
 
     <div class="features-grid">
@@ -2443,12 +2445,14 @@
     <div class="batch-toolbar convert-toolbar">
       <div class="batch-tool-group">
         <div class="batch-tool-label">แปลงเป็น</div>
-        <div class="seg seg-4" id="convert-format-seg">
+        <div class="seg seg-5" id="convert-format-seg">
           <button class="active" data-fmt="jpeg">JPG</button>
           <button data-fmt="png">PNG</button>
           <button data-fmt="webp">WebP</button>
           <button data-fmt="avif">AVIF</button>
+          <button data-fmt="svg">SVG</button>
         </div>
+        <div class="hint" id="convert-format-hint" style="margin-top:6px;display:none;"></div>
       </div>
 
       <div class="batch-tool-group">
@@ -5294,12 +5298,14 @@ const FORMAT_MIME = {
   png: 'image/png',
   webp: 'image/webp',
   avif: 'image/avif',
+  svg: 'image/svg+xml',
 };
 const FORMAT_EXT = {
   jpeg: 'jpg',
   png: 'png',
   webp: 'webp',
   avif: 'avif',
+  svg: 'svg',
 };
 
 function detectOrigFormat(file) {
@@ -5310,6 +5316,7 @@ function detectOrigFormat(file) {
   if (name.endsWith('.avif')) return 'avif';
   if (name.endsWith('.gif')) return 'gif';
   if (name.endsWith('.bmp')) return 'bmp';
+  if (name.endsWith('.svg')) return 'svg';
   // fallback to mime
   if (file.type === 'image/jpeg') return 'jpeg';
   if (file.type === 'image/png') return 'png';
@@ -5317,6 +5324,7 @@ function detectOrigFormat(file) {
   if (file.type === 'image/avif') return 'avif';
   if (file.type === 'image/gif') return 'gif';
   if (file.type === 'image/bmp') return 'bmp';
+  if (file.type === 'image/svg+xml') return 'svg';
   return 'unknown';
 }
 
@@ -5440,7 +5448,7 @@ async function processConvertItem(item) {
   // for JPG/AVIF: fill white bg first if source has transparency (PNG/WebP with alpha)
   const targetFmt = convertState.outputFormat;
   if ((targetFmt === 'jpeg' || targetFmt === 'avif') &&
-      (item.origFormat === 'png' || item.origFormat === 'webp' || item.origFormat === 'gif')) {
+      (item.origFormat === 'png' || item.origFormat === 'webp' || item.origFormat === 'gif' || item.origFormat === 'svg')) {
     // re-draw with white background
     const bgCanvas = document.createElement('canvas');
     bgCanvas.width = canvas.width;
@@ -5453,11 +5461,26 @@ async function processConvertItem(item) {
   }
 
   // encode
-  const mime = FORMAT_MIME[targetFmt];
-  const quality = (targetFmt === 'png') ? undefined : convertState.quality;
-
   try {
-    const blob = await canvasToFormatBlob(canvas, mime, quality);
+    let blob;
+    if (targetFmt === 'svg') {
+      // SVG output: embed rasterized PNG inside SVG wrapper (lossless, preserves transparency)
+      const pngDataUrl = await new Promise(resolve =>
+        canvas.toBlob(b => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.readAsDataURL(b);
+        }, 'image/png')
+      );
+      const w = canvas.width, h = canvas.height;
+      const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><image width="${w}" height="${h}" xlink:href="${pngDataUrl}"/></svg>`;
+      blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    } else {
+      const mime = FORMAT_MIME[targetFmt];
+      const quality = (targetFmt === 'png') ? undefined : convertState.quality;
+      blob = await canvasToFormatBlob(canvas, mime, quality);
+    }
+
     if (!blob) {
       item.status = 'error';
       item.error = 'Browser ไม่รองรับการ export เป็น ' + targetFmt.toUpperCase();
@@ -5638,22 +5661,37 @@ async function reprocessConvertAll() {
 }
 
 // ----- Format selector -----
+const convertFormatHint = document.getElementById('convert-format-hint');
+
 cel.formatSeg.forEach(btn => {
   btn.addEventListener('click', () => {
     cel.formatSeg.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     convertState.outputFormat = btn.dataset.fmt;
 
-    // toggle quality slider visibility based on format
-    if (convertState.outputFormat === 'png') {
+    const fmt = convertState.outputFormat;
+
+    // toggle quality slider + hint based on format
+    if (fmt === 'png' || fmt === 'svg') {
       cel.qualityRange.disabled = true;
       cel.qualityRange.style.opacity = '0.4';
-      cel.qualityHint.textContent = 'PNG ไม่มีการบีบอัดแบบ lossy';
+      cel.qualityHint.textContent = fmt === 'svg'
+        ? 'SVG output ฝัง PNG ไว้ข้างใน (lossless, รองรับ transparency)'
+        : 'PNG ไม่มีการบีบอัดแบบ lossy';
     } else {
       cel.qualityRange.disabled = false;
       cel.qualityRange.style.opacity = '';
-      cel.qualityHint.textContent = `ใช้กับ ${convertState.outputFormat.toUpperCase()} · คุณภาพสูง = ไฟล์ใหญ่`;
+      cel.qualityHint.textContent = `ใช้กับ ${fmt.toUpperCase()} · คุณภาพสูง = ไฟล์ใหญ่`;
     }
+
+    // show format-specific note
+    if (fmt === 'svg') {
+      convertFormatHint.textContent = '⚠ SVG output จะ rasterize รูป (vector path จะไม่ preserve)';
+      convertFormatHint.style.display = 'block';
+    } else {
+      convertFormatHint.style.display = 'none';
+    }
+
     reprocessConvertAll();
   });
 });
