@@ -33,6 +33,7 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
@@ -2380,10 +2381,10 @@
     </p>
 
     <div class="dropzone" id="convert-dropzone">
-      <input type="file" id="convert-file-input" accept="image/*,.svg" multiple>
+      <input type="file" id="convert-file-input" accept="image/*,.svg,.heic,.heif" multiple>
       <div class="dropzone-icon">+</div>
       <div class="dropzone-title">วางหลายภาพพร้อมกัน หรือคลิกเพื่อเลือก</div>
-      <div class="dropzone-sub">JPG · PNG · WebP · GIF · BMP · AVIF · SVG · เลือกได้หลายไฟล์</div>
+      <div class="dropzone-sub">JPG · PNG · WebP · GIF · BMP · AVIF · SVG · HEIC · เลือกได้หลายไฟล์</div>
     </div>
 
     <div class="features-grid">
@@ -5317,6 +5318,7 @@ function detectOrigFormat(file) {
   if (name.endsWith('.gif')) return 'gif';
   if (name.endsWith('.bmp')) return 'bmp';
   if (name.endsWith('.svg')) return 'svg';
+  if (name.endsWith('.heic') || name.endsWith('.heif')) return 'heic';
   // fallback to mime
   if (file.type === 'image/jpeg') return 'jpeg';
   if (file.type === 'image/png') return 'png';
@@ -5325,6 +5327,7 @@ function detectOrigFormat(file) {
   if (file.type === 'image/gif') return 'gif';
   if (file.type === 'image/bmp') return 'bmp';
   if (file.type === 'image/svg+xml') return 'svg';
+  if (file.type === 'image/heic' || file.type === 'image/heif') return 'heic';
   return 'unknown';
 }
 
@@ -5373,31 +5376,104 @@ async function handleConvertFiles(files) {
 
 function loadConvertFile(file) {
   return new Promise(resolve => {
+    const fmt = detectOrigFormat(file);
+
+    // HEIC/HEIF: decode ผ่าน heic2any ก่อน แล้วค่อย load เป็น img ปกติ
+    if (fmt === 'heic') {
+      if (typeof heic2any === 'undefined') {
+        resolve({
+          id: convertState.nextId++,
+          file,
+          img: null,
+          origSize: file.size,
+          origFormat: 'heic',
+          dataUrl: null,
+          blob: null,
+          blobSize: 0,
+          status: 'error',
+          error: 'heic2any ยังโหลดไม่เสร็จ ลองรีเฟรชหน้าเว็บ',
+        });
+        return;
+      }
+
+      heic2any({ blob: file, toType: 'image/jpeg', quality: 0.95 })
+        .then(convertedBlob => {
+          const url = URL.createObjectURL(convertedBlob);
+          const img = new Image();
+          img.onload = () => {
+            // create dataUrl for preview
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            URL.revokeObjectURL(url);
+            resolve({
+              id: convertState.nextId++,
+              file,
+              img,
+              origSize: file.size,
+              origFormat: 'heic',
+              dataUrl,
+              blob: null,
+              blobSize: 0,
+              status: 'pending',
+            });
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve({
+              id: convertState.nextId++,
+              file,
+              img: null,
+              origSize: file.size,
+              origFormat: 'heic',
+              dataUrl: null,
+              blob: null,
+              blobSize: 0,
+              status: 'error',
+              error: 'แปลง HEIC ไม่สำเร็จ',
+            });
+          };
+          img.src = url;
+        })
+        .catch(err => {
+          resolve({
+            id: convertState.nextId++,
+            file,
+            img: null,
+            origSize: file.size,
+            origFormat: 'heic',
+            dataUrl: null,
+            blob: null,
+            blobSize: 0,
+            status: 'error',
+            error: 'แปลง HEIC ไม่สำเร็จ: ' + (err.message || err),
+          });
+        });
+      return;
+    }
+
+    // ---- ส่วนที่เหลือ (raster + SVG) เหมือนเดิม ----
     const reader = new FileReader();
     reader.onload = e => {
-      const isSvg = detectOrigFormat(file) === 'svg';
+      const isSvg = fmt === 'svg';
 
       if (isSvg) {
-        // SVG special handling: parse dimensions from viewBox / width / height
-        // then render to offscreen canvas at proper resolution
-        const svgText = e.target.result; // readAsText below handles this
-
-        // parse SVG to get true dimensions
-        const parser = new DOMParser();
         const svgText2 = atob(e.target.result.split(',')[1]);
+        const parser = new DOMParser();
         const doc = parser.parseFromString(svgText2, 'image/svg+xml');
         const svgEl = doc.querySelector('svg');
 
         let svgW = 0, svgH = 0;
         if (svgEl) {
-          // try width/height attributes first
           const wa = svgEl.getAttribute('width');
           const ha = svgEl.getAttribute('height');
           if (wa && ha && !wa.includes('%') && !ha.includes('%')) {
             svgW = parseFloat(wa);
             svgH = parseFloat(ha);
           }
-          // fallback to viewBox
           if (!svgW || !svgH) {
             const vb = svgEl.getAttribute('viewBox');
             if (vb) {
@@ -5409,16 +5485,12 @@ function loadConvertFile(file) {
             }
           }
         }
-
-        // if still unknown, default to 800px wide (reasonable fallback)
         if (!svgW || !svgH) { svgW = 800; svgH = 600; }
 
-        // render SVG at 2x resolution for crispness
         const scale = Math.min(4, Math.max(1, 2000 / Math.max(svgW, svgH)));
         const renderW = Math.round(svgW * scale);
         const renderH = Math.round(svgH * scale);
 
-        // draw SVG onto canvas via <img>
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -5428,11 +5500,7 @@ function loadConvertFile(file) {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, renderW, renderH);
-
-          // save rendered canvas as dataUrl (PNG) for thumbnail
           const thumbDataUrl = canvas.toDataURL('image/png', 0.8);
-
-          // create a virtual img with the rendered canvas dimensions
           const renderedImg = new Image();
           renderedImg.onload = () => {
             resolve({
@@ -5441,8 +5509,8 @@ function loadConvertFile(file) {
               img: renderedImg,
               origSize: file.size,
               origFormat: 'svg',
-              dataUrl: thumbDataUrl,     // use rendered version for preview
-              svgDataUrl: e.target.result, // keep original SVG data URL
+              dataUrl: thumbDataUrl,
+              svgDataUrl: e.target.result,
               blob: null,
               blobSize: 0,
               status: 'pending',
@@ -5453,24 +5521,17 @@ function loadConvertFile(file) {
         img.onerror = () => {
           resolve({
             id: convertState.nextId++,
-            file,
-            img: null,
-            origSize: file.size,
-            origFormat: 'svg',
-            dataUrl: null,
-            blob: null,
-            blobSize: 0,
-            status: 'error',
-            error: 'Browser อ่าน SVG นี้ไม่ได้',
+            file, img: null,
+            origSize: file.size, origFormat: 'svg',
+            dataUrl: null, blob: null, blobSize: 0,
+            status: 'error', error: 'Browser อ่าน SVG นี้ไม่ได้',
           });
         };
-        // set explicit dimensions on SVG before rendering
         img.width = renderW;
         img.height = renderH;
         img.src = e.target.result;
 
       } else {
-        // normal raster image
         const img = new Image();
         img.onload = () => {
           resolve({
@@ -5478,7 +5539,7 @@ function loadConvertFile(file) {
             file,
             img,
             origSize: file.size,
-            origFormat: detectOrigFormat(file),
+            origFormat: fmt,
             dataUrl: e.target.result,
             blob: null,
             blobSize: 0,
@@ -5486,18 +5547,12 @@ function loadConvertFile(file) {
           });
         };
         img.onerror = () => {
-          console.warn('Failed to load image:', file.name);
           resolve({
             id: convertState.nextId++,
-            file,
-            img: null,
-            origSize: file.size,
-            origFormat: detectOrigFormat(file),
-            dataUrl: null,
-            blob: null,
-            blobSize: 0,
-            status: 'error',
-            error: 'Browser อ่านไฟล์ format นี้ไม่ได้',
+            file, img: null,
+            origSize: file.size, origFormat: fmt,
+            dataUrl: null, blob: null, blobSize: 0,
+            status: 'error', error: 'Browser อ่านไฟล์ format นี้ไม่ได้',
           });
         };
         img.src = e.target.result;
@@ -5544,7 +5599,7 @@ async function processConvertItem(item) {
   // for JPG/AVIF: fill white bg first if source has transparency (PNG/WebP with alpha)
   const targetFmt = convertState.outputFormat;
   if ((targetFmt === 'jpeg' || targetFmt === 'avif') &&
-      (item.origFormat === 'png' || item.origFormat === 'webp' || item.origFormat === 'gif' || item.origFormat === 'svg')) {
+      (item.origFormat === 'png' || item.origFormat === 'webp' || item.origFormat === 'gif' || item.origFormat === 'svg' || item.origFormat === 'heic')) {
     // re-draw with white background
     const bgCanvas = document.createElement('canvas');
     bgCanvas.width = canvas.width;
